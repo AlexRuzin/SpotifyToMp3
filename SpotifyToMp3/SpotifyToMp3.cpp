@@ -6,10 +6,10 @@
 #include "streamReader.h"
 
 // Default parameters
-const unsigned int input_channels = 1;
-const unsigned int output_channels = 0;
-const float sample_rate = 44100;
-const unsigned int buf_len = sizeof(__int32) * 64;
+const unsigned int inputChannels = 1;
+const unsigned int outputChannels = 0;
+const float sampleRate = 44100;
+const unsigned int bufferLength = sizeof(__int32) * 64;
 
 // Prototypes
 void signal_handler(int signal);
@@ -23,7 +23,7 @@ int main()
 	SignalHandlerPointer previousHandler;
 	previousHandler = signal(SIGABRT, signal_handler);
 
-	streamReader reader{ input_channels, output_channels, sample_rate, buf_len };
+	streamReader reader{ inputChannels, outputChannels, sampleRate, bufferLength };
 
 	return 0;
 }

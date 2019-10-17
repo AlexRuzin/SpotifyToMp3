@@ -1,7 +1,11 @@
 #pragma once
+#include <vector>
+
 #include <pa_win_wasapi.h>
 
+
 void exitPaError(PaError err);
+void debugS(const char* d...);
 
 static bool isPaInitialized = false;
 
@@ -11,20 +15,23 @@ private:
 	PaDeviceInfo* inDevice;
 	PaDeviceInfo* outDevice;
 
-public:
-	const unsigned int input_channels;
-	const unsigned int output_channels;
-	const float sample_rate;
-	const unsigned int buffer_length;
+	std::vector<PaHostApiInfo *> hostApis;
+	std::vector<PaDeviceInfo *> devices;
 
-	streamReader(	unsigned int num_input_channels, 
-					unsigned int num_output_channels,
-					float sample_rate,
-					unsigned int buffer_length) :
-		input_channels(num_input_channels),
-		output_channels(num_output_channels),
-		sample_rate(sample_rate),
-		buffer_length(buffer_length)
+public:
+	const unsigned int inputChannels;
+	const unsigned int outputChannels;
+	const float sampleRate;
+	const unsigned int bufferLength;
+
+	streamReader(	unsigned int numInputChannels,
+					unsigned int numOutputChannels,
+					float sampleRate,
+					unsigned int bufferLength) :
+		inputChannels(numInputChannels),
+		outputChannels(numOutputChannels),
+		sampleRate(sampleRate),
+		bufferLength(bufferLength)
 	{		
 		if (!initializePA())
 			exitPaError(paUnanticipatedHostError);
@@ -35,7 +42,11 @@ public:
 		Pa_Terminate();
 	}
 
+	int getDefaultDevices(void);
+
 private:
+	int getHostsDevices(std::vector<PaHostApiInfo *> *hostApis, std::vector<PaDeviceInfo *> *devices);
+
 	bool initializePA(void)
 	{
 		PaError paErr = Pa_Initialize();

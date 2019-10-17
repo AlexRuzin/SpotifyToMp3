@@ -18,3 +18,44 @@ void exitPaError(PaError err)
 		std::cout << "Unknown PA error";
 	}
 }
+
+int streamReader::getHostsDevices(std::vector<PaHostApiInfo *>* hostApis, std::vector<PaDeviceInfo *>* devices)
+{
+	PaHostApiIndex hostCount = Pa_GetHostApiCount();
+	PaHostApiIndex deviceCount = Pa_GetDeviceCount();
+
+	if (hostCount < 0) {
+		debugS("[!] hostCount cannot be zero");
+	}
+	if (deviceCount < 0) {
+		debugS("[!] deviceCount cannot be zero");
+	}
+		
+	devices = new(std::vector <PaDeviceInfo *>);
+	for (int i = 0; i < deviceCount; i++) {
+		devices->push_back(const_cast<PaDeviceInfo *>(Pa_GetDeviceInfo((PaDeviceIndex)i)));
+	}
+
+	hostApis = new(std::vector<PaHostApiInfo*>);
+	for (int i = 0; i < hostCount; i++) {
+		
+	}
+
+	return 0;
+}
+
+int streamReader::getDefaultDevices(void)
+{
+	int err = getHostsDevices(&this->hostApis, &this->devices);
+	if (!err)
+		exitPaError(err);
+	
+
+
+	return 0;
+}
+
+void debugS(const char* d...)
+{
+	std::cout << d;
+}
