@@ -155,6 +155,10 @@
   </ItemDefinitionGroup>
   <ItemGroup>
     <ClCompile Include="SpotifyToMp3.cpp" />
+    <ClCompile Include="streamReader.cpp" />
+  </ItemGroup>
+  <ItemGroup>
+    <ClInclude Include="streamReader.h" />
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
   <ImportGroup Label="ExtensionTargets">
