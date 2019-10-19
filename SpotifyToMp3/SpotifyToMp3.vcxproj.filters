@@ -26,5 +26,8 @@
     <ClInclude Include="streamReader.h">
       <Filter>Header Files</Filter>
     </ClInclude>
+    <ClInclude Include="recordToMp3.h">
+      <Filter>Source Files</Filter>
+    </ClInclude>
   </ItemGroup>
 </Project>
