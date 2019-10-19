@@ -25,7 +25,7 @@ int main()
 	
 	Pa_Initialize();
 	
-	recordToMp3 currMp3("test.mp3");
+	recordToMp3 currMp3("test2.mp3");
 	if (currMp3.selectPrimaryDevice(defaultVirtualCableDevice)) {
 		std::cout << "[!] Failed to determine primary output device" << std::endl;
 		ExitProcess(1);

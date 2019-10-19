@@ -11,7 +11,7 @@
 #include <portaudio.h>
 
 // Default parameters
-const int lameEncoderQuality = 2;
+const int lameEncoderQuality = 0;
 
 // Prototyping
 static void debug(const char* d...);
