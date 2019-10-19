@@ -1,4 +1,4 @@
-// https://gist.github.com/eruffaldi/86755065f4c777f01f972abf51890a6e
+// copied a lot from https://gist.github.com/eruffaldi/86755065f4c777f01f972abf51890a6e
 
 #include <iostream>
 #include <Windows.h>
@@ -7,6 +7,8 @@
 
 #include "recordToMp3.h"
 #include "streamReader.h"
+
+const char* defaultVirtualCableDevice = "CABLE Output";
 
 // Prototypes
 void signal_handler(int signal);
@@ -24,6 +26,17 @@ int main()
 	Pa_Initialize();
 	
 	recordToMp3 currMp3("test.mp3");
+	if (currMp3.selectPrimaryDevice(defaultVirtualCableDevice)) {
+		std::cout << "[!] Failed to determine primary output device" << std::endl;
+		ExitProcess(1);
+	}
+	if (currMp3.openIntoStream()) {
+		std::cout << "[!] Failed to open PA stream" << std::endl;
+		ExitProcess(1);
+	}	
+
+	Sleep(10000);
+	currMp3.closeStreamAndWrite();
 	
 	Pa_Terminate();
 	return 0;

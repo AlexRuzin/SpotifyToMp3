@@ -1,3 +1,5 @@
+#pragma once
+
 #include <iostream>
 #include <Windows.h>
 #include <string>
@@ -28,7 +30,8 @@ private:
 	lame_global_flags* lameFlags;
 
 public:
-	mp3Encoder(int sampleRate, int channels, int bitrate, std::string fileName)
+	mp3Encoder(int sampleRate, int channels, int bitrate, std::string fileName) :
+		onf(fileName.c_str(), std::ios::binary)
 	{
 		sampleRate = sampleRate;
 		channels = channels;
@@ -101,18 +104,19 @@ public:
 	mp3Encoder* encoder;
 
 public:
-	recordToMp3(const char* filename) :
+	recordToMp3(std::string filename) :
 		targetDevice(0),
-		pAStream(NULL)
+		pAStream(NULL),
+		filename(filename)
 	{
-		if (filename == NULL) {
+		if (filename == "") {
 			debug("[!] filename cannot be NULL");
 			ExitProcess(1);
 		}
 		filename = filename;
 	}
 
-	~recordToMp3()
+	~recordToMp3(void)
 	{
 		Pa_CloseStream(this->pAStream);
 	}
@@ -124,9 +128,11 @@ public:
 		for (int i = 0; i < deviceCount; i++) {
 			if (std::string(Pa_GetDeviceInfo(i)->name).find(deviceName) != std::string::npos) {
 				this->device = const_cast<PaDeviceInfo*>(Pa_GetDeviceInfo(i));
-					std::cout << "[+] Using device: " << this->device << std::endl;
+					std::cout << "[+] Using device: " << this->device << " Name: " << this->device->name << std::endl;
 				this->targetDevice = i;
+				break;
 			}
+			std::cout << "[+] Skipping device" << Pa_GetDeviceInfo(i)->name << std::endl;
 		}
 
 		this->streamRate = this->device->defaultSampleRate;
@@ -134,7 +140,7 @@ public:
 		return 0;
 	}
 
-	int openIntoStream()
+	int openIntoStream(void)
 	{
 		this->streamParams = new(PaStreamParameters);
 		streamParams->channelCount = this->device->maxInputChannels;
@@ -153,15 +159,25 @@ public:
 			paNoFlag,
 			this->encoder->paCallback_i32,
 			(void *)this->encoder);
-		if (!err) {
+		if (err) {
 			debug("[!] Error opening PA stream");
 			ExitProcess(0);
 		}
 		err = Pa_StartStream(this->pAStream);
-		if (!err) {
+		if (err) {
 			debug("[!] Error in starting PA stream");
 			ExitProcess(0);
 		}
+
+		return 0;
+	}
+
+	int closeStreamAndWrite(void)
+	{
+		debug("[+] Gracefully closing current stream");
+		Pa_CloseStream(this->pAStream);
+
+
 
 		return 0;
 	}
