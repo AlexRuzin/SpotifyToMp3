@@ -31,6 +31,8 @@
     <UseDebugLibraries>true</UseDebugLibraries>
     <PlatformToolset>v142</PlatformToolset>
     <CharacterSet>Unicode</CharacterSet>
+    <PreferredToolArchitecture>
+    </PreferredToolArchitecture>
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|Win32'" Label="Configuration">
     <ConfigurationType>Application</ConfigurationType>
@@ -72,8 +74,9 @@
   <PropertyGroup Label="UserMacros" />
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">
     <LinkIncremental>true</LinkIncremental>
-    <IncludePath>C:\Users\Stanr\source\portaudio\include;C:\Users\Stanr\source\lame-3.100\include;$(IncludePath)</IncludePath>
-    <LibraryPath>C:\Users\Stanr\source\portaudio\build\msvc\Win32\Debug;C:\Users\Stanr\source\lame-3.100\output;$(LibraryPath)</LibraryPath>
+    <IncludePath>C:\Users\Stanr\source\github.com\spotify-api-plusplus;C:\Users\Stanr\source\github.com\spotify-api-plusplus\src;C:\Users\Stanr\source\portaudio\include;C:\Users\Stanr\source\lame-3.100\include;$(IncludePath)</IncludePath>
+    <LibraryPath>C:\Users\Stanr\source\github.com\spotify-api-plusplus\src\Release;C:\Users\Stanr\source\portaudio\build\msvc\Win32\Debug;C:\Users\Stanr\source\lame-3.100\output;$(LibraryPath)</LibraryPath>
+    <ExecutablePath>$(ExecutablePath)</ExecutablePath>
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">
     <LinkIncremental>true</LinkIncremental>
@@ -97,7 +100,7 @@
     <Link>
       <SubSystem>Console</SubSystem>
       <GenerateDebugInformation>true</GenerateDebugInformation>
-      <AdditionalDependencies>portaudio_x86.lib;libmp3lame-static.lib;%(AdditionalDependencies)</AdditionalDependencies>
+      <AdditionalDependencies>portaudio_x86.lib;libmp3lame-static.lib;spotify-api-plusplus.lib;%(AdditionalDependencies)</AdditionalDependencies>
     </Link>
   </ItemDefinitionGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">
@@ -154,11 +157,13 @@
     </Link>
   </ItemDefinitionGroup>
   <ItemGroup>
+    <ClCompile Include="spotify.cpp" />
     <ClCompile Include="SpotifyToMp3.cpp" />
     <ClCompile Include="streamReader.cpp" />
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="recordToMp3.h" />
+    <ClInclude Include="spotify.h" />
     <ClInclude Include="streamReader.h" />
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />

@@ -38,7 +38,7 @@ public:
 		bitrate = bitrate;
 		fileName = fileName;
 
-		buf.resize(1024 * 64);
+		buf.resize(1024 * 128);
 		lameFlags = lame_init();
 		if (!lame_init()) {
 			ExitProcess(-1);

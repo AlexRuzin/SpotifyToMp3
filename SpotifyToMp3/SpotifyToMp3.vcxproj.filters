@@ -21,6 +21,9 @@
     <ClCompile Include="streamReader.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
+    <ClCompile Include="spotify.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="streamReader.h">
@@ -28,6 +31,9 @@
     </ClInclude>
     <ClInclude Include="recordToMp3.h">
       <Filter>Source Files</Filter>
+    </ClInclude>
+    <ClInclude Include="spotify.h">
+      <Filter>Header Files</Filter>
     </ClInclude>
   </ItemGroup>
 </Project>
