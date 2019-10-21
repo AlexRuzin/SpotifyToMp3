@@ -7,7 +7,7 @@
 #include <fstream>
 #include <vector>
 
-#include <lame.h>
+#include <lame/lame.h>
 #include <portaudio.h>
 
 // Default parameters

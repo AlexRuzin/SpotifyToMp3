@@ -35,6 +35,10 @@ int main()
 	}
 
 	spotify spot{clientId, clientSecret};
+	if (spot.obtainAccessToken()) {
+		std::cout << "[!] Failed to obtain access token";
+		ExitProcess(1);
+	}
 	
 	Pa_Initialize();
 	

@@ -74,8 +74,8 @@
   <PropertyGroup Label="UserMacros" />
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">
     <LinkIncremental>true</LinkIncremental>
-    <IncludePath>C:\Users\Stanr\source\github.com\spotify-api-plusplus;C:\Users\Stanr\source\github.com\spotify-api-plusplus\src;C:\Users\Stanr\source\portaudio\include;C:\Users\Stanr\source\lame-3.100\include;$(IncludePath)</IncludePath>
-    <LibraryPath>C:\Users\Stanr\source\github.com\spotify-api-plusplus\src\Release;C:\Users\Stanr\source\portaudio\build\msvc\Win32\Debug;C:\Users\Stanr\source\lame-3.100\output;$(LibraryPath)</LibraryPath>
+    <IncludePath>$(IncludePath)</IncludePath>
+    <LibraryPath>$(LibraryPath)</LibraryPath>
     <ExecutablePath>$(ExecutablePath)</ExecutablePath>
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">
@@ -100,7 +100,7 @@
     <Link>
       <SubSystem>Console</SubSystem>
       <GenerateDebugInformation>true</GenerateDebugInformation>
-      <AdditionalDependencies>portaudio_x86.lib;libmp3lame-static.lib;spotify-api-plusplus.lib;%(AdditionalDependencies)</AdditionalDependencies>
+      <AdditionalDependencies>%(AdditionalDependencies)</AdditionalDependencies>
     </Link>
   </ItemDefinitionGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">
@@ -157,11 +157,13 @@
     </Link>
   </ItemDefinitionGroup>
   <ItemGroup>
+    <ClCompile Include="base64.cpp" />
     <ClCompile Include="spotify.cpp" />
     <ClCompile Include="SpotifyToMp3.cpp" />
     <ClCompile Include="streamReader.cpp" />
   </ItemGroup>
   <ItemGroup>
+    <ClInclude Include="base64.h" />
     <ClInclude Include="recordToMp3.h" />
     <ClInclude Include="spotify.h" />
     <ClInclude Include="streamReader.h" />
