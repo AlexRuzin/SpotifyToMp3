@@ -39,6 +39,7 @@ int main()
 		std::cout << "[!] Failed to obtain access token";
 		ExitProcess(1);
 	}
+	std::cout << "[+] Successfully obtained API token";
 	
 	Pa_Initialize();
 	

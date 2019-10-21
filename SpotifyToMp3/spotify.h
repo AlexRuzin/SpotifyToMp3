@@ -2,6 +2,8 @@
 
 #include <Windows.h>
 #include <string>
+#include <locale>
+#include <codecvt>
 #include <sstream>
 #include <cpprest/json.h>
 
@@ -12,6 +14,7 @@ using namespace web;
 
 static size_t WriteCallback(void* contents, size_t size, size_t nmemb, void* userp);
 static void curlError(int errorCode);
+static std::string ws2s(const std::wstring& wstr);
 
 class spotify
 {
@@ -59,10 +62,12 @@ public:
 		}
 
 		utility::stringstream_t ss;
-		ss << &readBuffer;
+		ss << readBuffer.c_str();
 		json::value output = json::value::parse(ss);
+
+		auto token = output[U("access_token")].as_string().c_str();
 		
-		auto accessToken = output[U("access_token")];
+		this->accessToken = ws2s(output[U("access_token")].as_string());
 
 		return 0;
 	}
@@ -71,8 +76,15 @@ public:
 	{
 		//curl_easy_cleanup(this->curl);
 	}
-
 };
+
+static std::string ws2s(const std::wstring& wstr)
+{
+	using convert_typeX = std::codecvt_utf8<wchar_t>;
+	std::wstring_convert<convert_typeX, wchar_t> converterX;
+
+	return converterX.to_bytes(wstr);
+}
 
 static void curlError(int errorCode)
 {
