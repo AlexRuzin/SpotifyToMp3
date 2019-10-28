@@ -82,6 +82,7 @@ public:
 		auto token = output[U("access_token")].as_string().c_str();
 
 		this->accessToken = new std::string(ws2s(output[U("access_token")].as_string()));
+		std::cout << "[+] Access Token: " << *this->accessToken << std::endl;
 
 		return 0;
 	}
