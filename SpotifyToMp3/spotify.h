@@ -21,17 +21,69 @@ class spotify
 private:
 	CURL *curl;
 
-	std::string accessToken;
+	std::string *accessToken;
 
 public:
 	std::string clientId;
 	std::string clientSecret;
+	std::string *refreshToken;
 
 	spotify(std::string clientId, std::string clientSecret) :
 		clientId(clientId),
-		clientSecret(clientSecret)
+		clientSecret(clientSecret),
+		refreshToken(NULL),
+		accessToken(NULL)
 	{
 		
+	}
+
+	spotify(std::string clientId, std::string clientSecret, std::string refreshToken) :
+		clientId(clientId),
+		clientSecret(clientSecret),
+		refreshToken(new std::string(refreshToken)),
+		accessToken(NULL)
+	{
+
+	}
+
+	int authRefreshToken()
+	{
+		if (this->refreshToken == NULL) {
+			std::cout << "[!] refreshToken cannot be NULL with authRefreshToken()" << std::endl;
+			return -1;
+		}
+
+		this->curl = curl_easy_init();
+
+		std::string readBuffer;
+		curl_easy_setopt(curl, CURLOPT_WRITEFUNCTION, WriteCallback);
+		curl_easy_setopt(curl, CURLOPT_WRITEDATA, &readBuffer);
+
+		curl_easy_setopt(curl, CURLOPT_URL, "https://accounts.spotify.com/api/token");
+		curl_easy_setopt(curl, CURLOPT_SSL_VERIFYPEER, false);
+		curl_easy_setopt(curl, CURLOPT_CUSTOMREQUEST, "POST");
+
+		std::string postData = "grant_type=refresh_token&refresh_token=" + *refreshToken + 
+			"&client_id=" + clientId + "&client_secret=" + clientSecret;
+		std::cout << postData << std::endl;
+		curl_easy_setopt(curl, CURLOPT_POSTFIELDS, postData.c_str());
+
+		int rc = curl_easy_perform(curl);
+		if (rc != CURLE_OK) {
+			curlError(rc);
+			return rc;
+		}
+		curl_easy_cleanup(curl);
+
+		utility::stringstream_t ss;
+		ss << readBuffer.c_str();
+		json::value output = json::value::parse(ss);
+
+		auto token = output[U("access_token")].as_string().c_str();
+
+		this->accessToken = new std::string(ws2s(output[U("access_token")].as_string()));
+
+		return 0;
 	}
 
 	int obtainAccessToken()
@@ -67,7 +119,7 @@ public:
 
 		auto token = output[U("access_token")].as_string().c_str();
 		
-		this->accessToken = ws2s(output[U("access_token")].as_string());
+		this->accessToken = new std::string(ws2s(output[U("access_token")].as_string()));
 
 		return 0;
 	}

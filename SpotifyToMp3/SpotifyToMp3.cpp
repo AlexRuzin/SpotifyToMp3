@@ -17,7 +17,8 @@ std::string configFilename = "..\\config.ini";
 // Prototypes
 void signal_handler(int signal);
 void exitPaError(PaError err);
-int processIni(std::string filename, std::string* clientId, std::string* clientSecret);
+int processIni(std::string filename,
+	std::string* clientId, std::string* clientSecret, std::string* refreshToken);
 
 int main()
 {
@@ -28,13 +29,21 @@ int main()
 
 	static_assert(sizeof(int) == 4, "lame support requires 32 bit");
 
-	std::string clientId, clientSecret;
-	if (processIni(configFilename, &clientId, &clientSecret)) {
+	std::string clientId, clientSecret, refreshToken;
+	if (processIni(configFilename, &clientId, &clientSecret, &refreshToken)) {
 		std::cout << "[!] Failed to parse config: " << configFilename << std::endl;
 		ExitProcess(1);
 	}
 
-	spotify spot{clientId, clientSecret};
+	spotify spot{clientId, clientSecret, refreshToken};
+	if (spot.authRefreshToken()) {
+		std::cout << "[!] Failed to obtain access token from refresh token" << std::endl;
+		ExitProcess(1);
+	}
+
+
+
+
 	if (spot.obtainAccessToken()) {
 		std::cout << "[!] Failed to obtain access token";
 		ExitProcess(1);
@@ -60,7 +69,8 @@ int main()
 	return 0;
 }
 
-int processIni(std::string filename, std::string* clientId, std::string* clientSecret)
+int processIni(std::string filename, 
+	std::string* clientId, std::string* clientSecret, std::string *refreshToken)
 {
 	INIReader reader(filename);
 
@@ -72,6 +82,7 @@ int processIni(std::string filename, std::string* clientId, std::string* clientS
 	const std::string sec = "api";
 	*clientId = reader.Get(sec, "clientId", "ffff");
 	*clientSecret = reader.Get(sec, "clientSecret", "ffff");
+	*refreshToken = reader.Get(sec, "refreshToken", "ffff");
 
 	return 0;
 }
