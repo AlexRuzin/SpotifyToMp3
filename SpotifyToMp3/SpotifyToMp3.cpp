@@ -41,6 +41,8 @@ int main()
 		ExitProcess(1);
 	}
 
+	const std::vector<std::string>* device = spot.getDeviceList();
+
 	if (spot.cmdResumePlayback()) {
 		std::cout << "[!] Failed to resume playback" << std::endl;
 		ExitProcess(0);

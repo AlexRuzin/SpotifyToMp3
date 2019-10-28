@@ -5,6 +5,7 @@
 #include <locale>
 #include <codecvt>
 #include <sstream>
+#include <vector>
 #include <assert.h>
 #include <mutex>
 #include <cpprest/json.h>
@@ -27,6 +28,8 @@ private:
 
 	// API sync mutext
 	std::mutex apiSync;
+
+	std::string *responseBuffer;
 
 public:
 	std::string clientId;
@@ -65,13 +68,8 @@ public:
 
 		this->curl = curl_easy_init();
 
-		std::string readBuffer;
-		curl_easy_setopt(curl, CURLOPT_WRITEFUNCTION, WriteCallback);
-		curl_easy_setopt(curl, CURLOPT_WRITEDATA, &readBuffer);
-
-		curl_easy_setopt(curl, CURLOPT_URL, "https://accounts.spotify.com/api/token");
-		curl_easy_setopt(curl, CURLOPT_SSL_VERIFYPEER, false);
-		curl_easy_setopt(curl, CURLOPT_CUSTOMREQUEST, "POST");
+		setCurlResponseBuffer();
+		setCurlUri(curl, "https://accounts.spotify.com/api/token", "POST");
 
 		std::string postData = "grant_type=refresh_token&refresh_token=" + *refreshToken + 
 			"&client_id=" + clientId + "&client_secret=" + clientSecret;
@@ -86,10 +84,7 @@ public:
 		curl_easy_cleanup(curl);
 		this->curl = NULL;
 
-		utility::stringstream_t ss;
-		ss << readBuffer.c_str();
-		json::value output = json::value::parse(ss);
-
+		json::value output = parseJsonResponse();
 		auto token = output[U("access_token")].as_string().c_str();
 
 		this->accessToken = new std::string(ws2s(output[U("access_token")].as_string()));
@@ -107,14 +102,8 @@ public:
 
 		this->curl = curl_easy_init();
 
-		curl_easy_setopt(curl, CURLOPT_WRITEFUNCTION, WriteCallback);
-
-		std::string readBuffer;
-		curl_easy_setopt(curl, CURLOPT_WRITEDATA, &readBuffer);
-
-		curl_easy_setopt(curl, CURLOPT_URL, "https://accounts.spotify.com/api/token");
-		curl_easy_setopt(curl, CURLOPT_SSL_VERIFYPEER, false);
-		curl_easy_setopt(curl, CURLOPT_CUSTOMREQUEST, "POST");
+		setCurlResponseBuffer();
+		setCurlUri(curl, "https://accounts.spotify.com/api/token", "POST");
 
 		std::string raw = clientId + ":" + clientSecret;
 		std::string encoded = "Authorization: Basic " + base64_encode((const BYTE*)raw.c_str(), raw.length());
@@ -132,10 +121,7 @@ public:
 		curl_easy_cleanup(curl);
 		this->curl = NULL;
 
-		utility::stringstream_t ss;
-		ss << readBuffer.c_str();
-		json::value output = json::value::parse(ss);
-
+		json::value output = parseJsonResponse();
 		auto token = output[U("access_token")].as_string().c_str();
 		
 		this->accessToken = new std::string(ws2s(output[U("access_token")].as_string()));
@@ -143,6 +129,34 @@ public:
 		this->apiSync.unlock();
 
 		return 0;
+	}
+
+	std::vector<std::string> *getDeviceList()
+	{
+		this->apiSync.lock();
+		assert(this->accessToken != NULL);
+		assert(this->curl == NULL);
+
+		this->curl = curl_easy_init();
+
+		setCurlResponseBuffer();
+		setCurlUri(curl, "https://api.spotify.com/v1/me/player/devices", "GET");
+
+		struct curl_slist* chunk = returnAuthHeader();
+		curl_easy_setopt(curl, CURLOPT_HTTPHEADER, chunk);
+
+		int rc = curl_easy_perform(curl);
+		if (rc != CURLE_OK) {
+			curlError(rc);
+		}
+		curl_easy_cleanup(curl);
+		this->curl = NULL;
+
+		json::value output = parseJsonResponse();
+		
+
+		this->apiSync.unlock();
+		return NULL;
 	}
 
 	int cmdResumePlayback()
@@ -154,9 +168,7 @@ public:
 
 		this->curl = curl_easy_init();
 
-		curl_easy_setopt(curl, CURLOPT_URL, "https://api.spotify.com/v1/me/player/play");
-		curl_easy_setopt(curl, CURLOPT_SSL_VERIFYPEER, false);
-		curl_easy_setopt(curl, CURLOPT_CUSTOMREQUEST, "PUT");
+		setCurlUri(curl, "https://api.spotify.com/v1/me/player/play", "PUT");
 
 		struct curl_slist* chunk = returnAuthHeader();
 		chunk = curl_slist_append(chunk, "Content-Length: 0");
@@ -182,6 +194,35 @@ public:
 	}
 
 private:
+	json::value parseJsonResponse()
+	{
+		utility::stringstream_t ss;
+		ss << this->responseBuffer->c_str();
+		json::value output = json::value::parse(ss);
+
+		std::cout << this->responseBuffer << std::endl;
+		return output;
+	}
+
+	void setCurlResponseBuffer()
+	{
+		if (this->responseBuffer != NULL) {
+			delete this->responseBuffer;
+			this->responseBuffer = NULL;
+		}
+		this->responseBuffer = new std::string;
+
+		curl_easy_setopt(curl, CURLOPT_WRITEFUNCTION, WriteCallback);
+		curl_easy_setopt(curl, CURLOPT_WRITEDATA, responseBuffer);
+	}
+
+	void setCurlUri(CURL* c, std::string URI, std::string verb)
+	{
+		curl_easy_setopt(curl, CURLOPT_URL, URI.c_str());
+		curl_easy_setopt(curl, CURLOPT_SSL_VERIFYPEER, false);
+		curl_easy_setopt(curl, CURLOPT_CUSTOMREQUEST, verb.c_str());
+	}
+
 	struct curl_slist* returnAuthHeader()
 	{
 		std::string authBearer = "Authorization: Bearer " + *this->accessToken + "";
