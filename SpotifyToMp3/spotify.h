@@ -5,6 +5,8 @@
 #include <locale>
 #include <codecvt>
 #include <sstream>
+#include <assert.h>
+#include <mutex>
 #include <cpprest/json.h>
 
 #include <curl/curl.h>
@@ -23,6 +25,9 @@ private:
 
 	std::string *accessToken;
 
+	// API sync mutext
+	std::mutex apiSync;
+
 public:
 	std::string clientId;
 	std::string clientSecret;
@@ -32,7 +37,8 @@ public:
 		clientId(clientId),
 		clientSecret(clientSecret),
 		refreshToken(NULL),
-		accessToken(NULL)
+		accessToken(NULL),
+		curl(NULL)
 	{
 		
 	}
@@ -41,7 +47,8 @@ public:
 		clientId(clientId),
 		clientSecret(clientSecret),
 		refreshToken(new std::string(refreshToken)),
-		accessToken(NULL)
+		accessToken(NULL),
+		curl(NULL)
 	{
 
 	}
@@ -52,6 +59,9 @@ public:
 			std::cout << "[!] refreshToken cannot be NULL with authRefreshToken()" << std::endl;
 			return -1;
 		}
+
+		this->apiSync.lock();
+		assert(this->curl == NULL);
 
 		this->curl = curl_easy_init();
 
@@ -74,6 +84,7 @@ public:
 			return rc;
 		}
 		curl_easy_cleanup(curl);
+		this->curl = NULL;
 
 		utility::stringstream_t ss;
 		ss << readBuffer.c_str();
@@ -84,11 +95,16 @@ public:
 		this->accessToken = new std::string(ws2s(output[U("access_token")].as_string()));
 		std::cout << "[+] Access Token: " << *this->accessToken << std::endl;
 
+		this->apiSync.unlock();
+
 		return 0;
 	}
 
 	int obtainAccessToken()
 	{
+		this->apiSync.lock();
+		assert(this->curl == NULL);
+
 		this->curl = curl_easy_init();
 
 		curl_easy_setopt(curl, CURLOPT_WRITEFUNCTION, WriteCallback);
@@ -113,6 +129,8 @@ public:
 		if (rc != CURLE_OK) {
 			curlError(rc);
 		}
+		curl_easy_cleanup(curl);
+		this->curl = NULL;
 
 		utility::stringstream_t ss;
 		ss << readBuffer.c_str();
@@ -122,12 +140,53 @@ public:
 		
 		this->accessToken = new std::string(ws2s(output[U("access_token")].as_string()));
 
+		this->apiSync.unlock();
+
+		return 0;
+	}
+
+	int cmdResumePlayback()
+	{
+	   	this->apiSync.lock();
+		assert(this->curl == NULL);
+
+		// curl -X PUT "https://api.spotify.com/v1/me/player/play" -H "Authorization: Bearer {your access token}"
+
+		this->curl = curl_easy_init();
+
+		curl_easy_setopt(curl, CURLOPT_URL, "https://api.spotify.com/v1/me/player/play");
+		curl_easy_setopt(curl, CURLOPT_SSL_VERIFYPEER, false);
+		curl_easy_setopt(curl, CURLOPT_CUSTOMREQUEST, "PUT");
+
+		struct curl_slist* chunk = returnAuthHeader();
+		chunk = curl_slist_append(chunk, "Content-Length: 0");
+		curl_easy_setopt(curl, CURLOPT_HTTPHEADER, chunk);
+
+		//std::string postData = "context_uri={\"context_uri\": \"spotify:album:1Je1IMUlBXcx1Fz0WE7oPT\"}";
+		//curl_easy_setopt(curl, CURLOPT_POSTFIELDS, postData.c_str());
+
+		int rc = curl_easy_perform(curl);
+		if (rc != CURLE_OK) {
+			curlError(rc);
+		}
+		curl_easy_cleanup(curl);
+		this->curl = NULL;
+
+		this->apiSync.unlock();
 		return 0;
 	}
 
 	~spotify(void)
 	{
 		//curl_easy_cleanup(this->curl);
+	}
+
+private:
+	struct curl_slist* returnAuthHeader()
+	{
+		std::string authBearer = "Authorization: Bearer " + *this->accessToken + "";
+		struct curl_slist* chunk = NULL;
+		return curl_slist_append(chunk, authBearer.c_str());
 	}
 };
 

@@ -41,7 +41,10 @@ int main()
 		ExitProcess(1);
 	}
 
-
+	if (spot.cmdResumePlayback()) {
+		std::cout << "[!] Failed to resume playback" << std::endl;
+		ExitProcess(0);
+	}
 
 
 	if (spot.obtainAccessToken()) {
