@@ -56,7 +56,6 @@ int main()
 		ExitProcess(0);
 	}
 
-
 	if (spot.obtainAccessToken()) {
 		std::cout << "[!] Failed to obtain access token";
 		ExitProcess(1);

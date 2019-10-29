@@ -38,6 +38,8 @@ private:
 		bool isPrivateSession;
 		bool isRestricted;
 		unsigned int volumePercent;
+
+
 	} SDEVICES, *PSDEVICES;
 	std::vector<SDEVICES> *sDevices;
 	std::string primaryDevice;
@@ -143,6 +145,35 @@ public:
 		return 0;
 	}
 
+	int cmdResumePlayback()
+	{
+		assert(this->primaryDevice != "");
+		this->apiSync.lock();
+		assert(this->curl == NULL);
+
+		// curl -X PUT "https://api.spotify.com/v1/me/player/play" -H "Authorization: Bearer {your access token}"
+
+		this->curl = curl_easy_init();
+
+		setCurlUri(curl, "https://api.spotify.com/v1/me/player/play", "POST");
+
+		struct curl_slist* chunk = returnAuthHeader();
+		curl_easy_setopt(curl, CURLOPT_HTTPHEADER, chunk);
+
+		std::string postData = "device=" + this->primaryDevice;
+		curl_easy_setopt(curl, CURLOPT_POSTFIELDS, postData.c_str());
+
+		int rc = curl_easy_perform(curl);
+		if (rc != CURLE_OK) {
+			curlError(rc);
+		}
+		curl_easy_cleanup(curl);
+		this->curl = NULL;
+
+		this->apiSync.unlock();
+		return 0;
+	}
+
 	int setPrimaryDevice(std::string deviceName)
 	{
 		this->sDevices = getDeviceList();
@@ -160,35 +191,6 @@ public:
 
 		std::cout << "[!] Failed to find device: " << deviceName << std::endl;
 		return -1;
-	}
-
-	int cmdResumePlayback()
-	{
-	   	this->apiSync.lock();
-		assert(this->curl == NULL);
-
-		// curl -X PUT "https://api.spotify.com/v1/me/player/play" -H "Authorization: Bearer {your access token}"
-
-		this->curl = curl_easy_init();
-
-		setCurlUri(curl, "https://api.spotify.com/v1/me/player/play", "PUT");
-
-		struct curl_slist* chunk = returnAuthHeader();
-		chunk = curl_slist_append(chunk, "Content-Length: 0");
-		curl_easy_setopt(curl, CURLOPT_HTTPHEADER, chunk);
-
-		//std::string postData = "context_uri={\"context_uri\": \"spotify:album:1Je1IMUlBXcx1Fz0WE7oPT\"}";
-		//curl_easy_setopt(curl, CURLOPT_POSTFIELDS, postData.c_str());
-
-		int rc = curl_easy_perform(curl);
-		if (rc != CURLE_OK) {
-			curlError(rc);
-		}
-		curl_easy_cleanup(curl);
-		this->curl = NULL;
-
-		this->apiSync.unlock();
-		return 0;
 	}
 
 	~spotify(void)
@@ -218,77 +220,27 @@ private:
 		curl_easy_cleanup(curl);
 		this->curl = NULL;
 
-		json::value output = parseJsonResponse();
+		std::vector<SDEVICES>* out = new(std::vector<SDEVICES>);
 
-		/*
-		{
-  "devices" : [ {
-    "id" : "09d53263690ad143c5efdf9861234c4653fef8d5",
-    "is_active" : false,
-    "is_private_session" : false,
-    "is_restricted" : false,
-    "name" : "DESKTOP-H2B4T0P",
-    "type" : "Computer",
-    "volume_percent" : 100
-  }, {
-    "id" : "40c4cdb902ff7b51204142803e970e8023725594",
-    "is_active" : false,
-    "is_private_session" : false,
-    "is_restricted" : false,
-    "name" : "Denon AVR-X4200W",
-    "type" : "AVR",
-    "volume_percent" : 50
-  }, {
-    "id" : "cff792bddd056a3761e31e592c0978b945f31960",
-    "is_active" : false,
-    "is_private_session" : false,
-    "is_restricted" : false,
-    "name" : "JOL-LT-119",
-    "type" : "Computer",
-    "volume_percent" : 100
-  }, {
-    "id" : "d3bb3fa33f96241704812642233a9c9d4cb8fa0a",
-    "is_active" : false,
-    "is_private_session" : false,
-    "is_restricted" : false,
-    "name" : "SM-G955W",
-    "type" : "Smartphone",
-    "volume_percent" : 100
-  } ]
-}
-
-	typedef struct {
-		std::string id;
-		std::string name;
-		std::string type;
-		bool isActive;
-		bool isPrivateSession;
-		bool isRestricted;
-		unsigned int volumePercent;
-	} SDEVICES, *PSDEVICES;
-		*/
-
-
-		auto deviceArray = output.at(U("devices")).as_array();
-		std::vector<SDEVICES>* out = new std::vector<SDEVICES>();
-		for (auto i = deviceArray.begin(); i != deviceArray.end(); ++i) {
-			auto& data = *i;
-			auto dataobj = data.as_object();
-
-			out->push_back(SDEVICES(
-				data.at(U("id")).as_string(),
-				data.
-			));
-
-
-			for (auto inner = dataobj.cbegin(); inner != dataobj.cend(); ++inner) {
-				inner->th
-			}
+		rapidjson::Document jsonDoc;
+		jsonDoc.Parse(responseBuffer->c_str());
+		assert(jsonDoc.HasMember("devices"));
+		const rapidjson::Value& deviceArray = jsonDoc["devices"];
+		assert(deviceArray.IsArray());
+		for (rapidjson::SizeType i = 0; i < deviceArray.Size(); i++) {
+			out->push_back(SDEVICES{
+				std::string(deviceArray[i]["id"].GetString()),
+				std::string(deviceArray[i]["name"].GetString()),
+				std::string(deviceArray[i]["type"].GetString()),
+				deviceArray[i]["is_active"].GetBool(),
+				deviceArray[i]["is_private_session"].GetBool(),
+				deviceArray[i]["is_restricted"].GetBool(),
+				deviceArray[i]["volume_percent"].GetUint()
+				});
 		}
 
-
 		this->apiSync.unlock();
-		return NULL;
+		return out;
 	}
 
 	void setCurlResponseBuffer()
