@@ -62,6 +62,12 @@ int main()
 		ExitProcess(1);
 	}
 
+	const std::vector<spotify::TRACK> trackList = spot.getTrackList();
+	assert(trackList.size() > 0);
+	for (std::vector<spotify::TRACK>::iterator curr = trackList.begin(); curr != trackList.end(); curr++) {
+
+	}
+
 	if (spot.cmdResumePlayback()) {
 		std::cout << "[!] Failed to resume playback" << std::endl;
 		ExitProcess(0);

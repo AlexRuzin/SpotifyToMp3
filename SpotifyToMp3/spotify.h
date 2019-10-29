@@ -46,6 +46,8 @@ private:
 
 	std::string targetPlaylistId;
 
+public:
+
 	typedef struct {
 		std::string		id;
 		std::string		artistName;
@@ -56,6 +58,8 @@ private:
 		unsigned int	trackNumber;
 		std::string		genre;
 	} TRACK, * PTRACK;
+
+private:
 	std::vector<TRACK> trackList;
 
 public:
@@ -100,6 +104,11 @@ public:
 
 	// Determine primary audio device from input default device
 	int setPrimaryDevice(std::string deviceName);
+
+	const std::vector<TRACK> getTrackList()
+	{
+		return this->trackList;
+	}
 
 	// Get target playlist Id
 	std::string getTargetPlaylistId()
