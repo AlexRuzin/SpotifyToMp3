@@ -46,6 +46,18 @@ private:
 
 	std::string targetPlaylistId;
 
+	typedef struct {
+		std::string		id;
+		std::string		artistName;
+		std::string		trackName;
+		unsigned int	duration;
+		std::string		album;
+		unsigned int	year;
+		unsigned int	trackNumber;
+		std::string		genre;
+	} TRACK, * PTRACK;
+	std::vector<TRACK> trackList;
+
 public:
 	std::string clientId;
 	std::string clientSecret;
@@ -83,8 +95,17 @@ public:
 	// Search for a playlist
 	int searchPlaylist(std::string playlist, std::string owner);
 
+	// Enum tracks in a playlist
+	int enumTracksPlaylist(std::string playlistId);
+
 	// Determine primary audio device from input default device
 	int setPrimaryDevice(std::string deviceName);
+
+	// Get target playlist Id
+	std::string getTargetPlaylistId()
+	{
+		return this->targetPlaylistId;
+	}
 
 	~spotify(void)
 	{

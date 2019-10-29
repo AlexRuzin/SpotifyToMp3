@@ -53,6 +53,11 @@ int main()
 		ExitProcess(0);
 	}
 
+	if (spot.enumTracksPlaylist(spot.getTargetPlaylistId())) {
+		std::cout << "[!] Failed to enum playlist" << std::endl;
+		ExitProcess(0);
+	}
+
 	if (spot.setPrimaryDevice(cfg->defaultDevice)) {
 		ExitProcess(1);
 	}

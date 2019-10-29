@@ -2,6 +2,7 @@
 #include <iomanip>
 #include <sstream>
 #include <string>
+#include <regex>
 
 #include "spotify.h"
 
@@ -186,12 +187,63 @@ int spotify::searchPlaylist(std::string playlist, std::string owner)
 		if (itemArray[i]["name"].GetString() == playlist && 
 			itemArray[i]["owner"]["display_name"].GetString() == owner) {
 			this->targetPlaylistId = itemArray[i]["id"].GetString();
+			this->apiSync.unlock();
 			return 0;
 		}
 	}
 
 	this->apiSync.unlock();
 	return -1;
+}
+
+int spotify::enumTracksPlaylist(std::string playlistId)
+{
+	this->apiSync.lock();
+	assert(this->curl == NULL);
+
+	// curl -X GET "https://api.spotify.com/v1/playlists/21THa8j9TaSGuXYNBU5tsC/tracks" -H "Authorization: Bearer {your access token}"
+
+	this->curl = curl_easy_init();
+	setCurlResponseBuffer();
+	setCurlUri(curl, "https://api.spotify.com/v1/playlists/" + playlistId + "/tracks", "GET");
+	struct curl_slist* chunk = returnAuthHeader();
+	curl_easy_setopt(curl, CURLOPT_HTTPHEADER, chunk);
+
+	int rc = curl_easy_perform(curl);
+	if (rc != CURLE_OK) {
+		curlError(rc);
+	}
+	curl_easy_cleanup(curl);
+	this->curl = NULL;
+
+	rapidjson::Document jsonDoc;
+	jsonDoc.Parse(responseBuffer->c_str());
+	assert(jsonDoc.HasMember("items"));
+	const rapidjson::Value& itemArray = jsonDoc["items"];
+	assert(itemArray.IsArray());
+	for (rapidjson::SizeType i = 0; i < itemArray.Size(); i++) {
+		const std::string dateAdded = std::string(itemArray[i]["added_at"].GetString());
+		std::regex reg("(\\d{4})-\\d{1,2}-\\d{1,2}.*");
+		std::smatch m;
+		std::regex_search(dateAdded, m, reg);
+		std::string* out = NULL;
+		for (auto x : m) out = new std::string(x);
+
+		const rapidjson::Value& track = itemArray[i]["track"];
+		this->trackList.push_back(TRACK{
+				track["id"].GetString(),
+				track["artists"][0]["name"].GetString(),
+				track["name"].GetString(),
+				track["duration_ms"].GetUint(),
+				track["album"]["name"].GetString(),
+				(unsigned int)std::stoi(*out),
+				track["track_number"].GetUint(),
+				"unknown"
+			});
+	}
+
+	this->apiSync.unlock();
+	return 0;
 }
 
 int spotify::setPrimaryDevice(std::string deviceName)
