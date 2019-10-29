@@ -43,6 +43,7 @@ private:
 	} SDEVICES, *PSDEVICES;
 	std::vector<SDEVICES> *sDevices;
 	std::string primaryDevice;
+	std::string primaryDeviceId;
 
 public:
 	std::string clientId;
@@ -147,7 +148,7 @@ public:
 
 	int cmdResumePlayback()
 	{
-		assert(this->primaryDevice != "");
+		assert(this->primaryDeviceId != "");
 		this->apiSync.lock();
 		assert(this->curl == NULL);
 
@@ -155,13 +156,12 @@ public:
 
 		this->curl = curl_easy_init();
 
-		setCurlUri(curl, "https://api.spotify.com/v1/me/player/play", "POST");
+		setCurlResponseBuffer();
+		setCurlUri(curl, "https://api.spotify.com/v1/me/player/play?device_id=" + this->primaryDeviceId, "PUT");
 
 		struct curl_slist* chunk = returnAuthHeader();
+		chunk = curl_slist_append(chunk, "Content-Length: 0");
 		curl_easy_setopt(curl, CURLOPT_HTTPHEADER, chunk);
-
-		std::string postData = "device=" + this->primaryDevice;
-		curl_easy_setopt(curl, CURLOPT_POSTFIELDS, postData.c_str());
 
 		int rc = curl_easy_perform(curl);
 		if (rc != CURLE_OK) {
@@ -185,6 +185,7 @@ public:
 		for (std::vector<SDEVICES>::iterator i = sDevices->begin(); i != sDevices->end(); ++i) {
 			if ((*i).name == deviceName) {
 				this->primaryDevice = deviceName;
+				this->primaryDeviceId = (*i).id;
 				return 0;
 			}
 		}
