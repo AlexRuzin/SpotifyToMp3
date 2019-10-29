@@ -8,12 +8,11 @@
 #include <vector>
 #include <assert.h>
 #include <mutex>
-#include <cpprest/json.h>
+#include <rapidjson/rapidjson.h>
+#include <rapidjson/document.h>
 
 #include <curl/curl.h>
 #include "base64.h"
-
-using namespace web;
 
 static size_t WriteCallback(void* contents, size_t size, size_t nmemb, void* userp);
 static void curlError(int errorCode);
@@ -41,6 +40,7 @@ private:
 		unsigned int volumePercent;
 	} SDEVICES, *PSDEVICES;
 	std::vector<SDEVICES> *sDevices;
+	std::string primaryDevice;
 
 public:
 	std::string clientId;
@@ -95,10 +95,11 @@ public:
 		curl_easy_cleanup(curl);
 		this->curl = NULL;
 
-		json::value output = parseJsonResponse();
-		auto token = output[U("access_token")].as_string().c_str();
+		rapidjson::Document jsonDoc;
+		jsonDoc.Parse(responseBuffer->c_str());
+		assert(jsonDoc.HasMember("access_token"));
+		this->accessToken = new std::string(jsonDoc["access_token"].GetString());
 
-		this->accessToken = new std::string(ws2s(output[U("access_token")].as_string()));
 		std::cout << "[+] Access Token: " << *this->accessToken << std::endl;
 
 		this->apiSync.unlock();
@@ -132,10 +133,10 @@ public:
 		curl_easy_cleanup(curl);
 		this->curl = NULL;
 
-		json::value output = parseJsonResponse();
-		auto token = output[U("access_token")].as_string().c_str();
-		
-		this->accessToken = new std::string(ws2s(output[U("access_token")].as_string()));
+		rapidjson::Document jsonDoc;
+		jsonDoc.Parse(responseBuffer->c_str());
+		assert(jsonDoc.HasMember("access_token"));
+		this->accessToken = new std::string(jsonDoc["access_token"].GetString());
 
 		this->apiSync.unlock();
 
@@ -150,7 +151,15 @@ public:
 			return -1;
 		}
 
-		return 0;
+		for (std::vector<SDEVICES>::iterator i = sDevices->begin(); i != sDevices->end(); ++i) {
+			if ((*i).name == deviceName) {
+				this->primaryDevice = deviceName;
+				return 0;
+			}
+		}
+
+		std::cout << "[!] Failed to find device: " << deviceName << std::endl;
+		return -1;
 	}
 
 	int cmdResumePlayback()
@@ -211,19 +220,75 @@ private:
 
 		json::value output = parseJsonResponse();
 
+		/*
+		{
+  "devices" : [ {
+    "id" : "09d53263690ad143c5efdf9861234c4653fef8d5",
+    "is_active" : false,
+    "is_private_session" : false,
+    "is_restricted" : false,
+    "name" : "DESKTOP-H2B4T0P",
+    "type" : "Computer",
+    "volume_percent" : 100
+  }, {
+    "id" : "40c4cdb902ff7b51204142803e970e8023725594",
+    "is_active" : false,
+    "is_private_session" : false,
+    "is_restricted" : false,
+    "name" : "Denon AVR-X4200W",
+    "type" : "AVR",
+    "volume_percent" : 50
+  }, {
+    "id" : "cff792bddd056a3761e31e592c0978b945f31960",
+    "is_active" : false,
+    "is_private_session" : false,
+    "is_restricted" : false,
+    "name" : "JOL-LT-119",
+    "type" : "Computer",
+    "volume_percent" : 100
+  }, {
+    "id" : "d3bb3fa33f96241704812642233a9c9d4cb8fa0a",
+    "is_active" : false,
+    "is_private_session" : false,
+    "is_restricted" : false,
+    "name" : "SM-G955W",
+    "type" : "Smartphone",
+    "volume_percent" : 100
+  } ]
+}
+
+	typedef struct {
+		std::string id;
+		std::string name;
+		std::string type;
+		bool isActive;
+		bool isPrivateSession;
+		bool isRestricted;
+		unsigned int volumePercent;
+	} SDEVICES, *PSDEVICES;
+		*/
+
+
+		auto deviceArray = output.at(U("devices")).as_array();
+		std::vector<SDEVICES>* out = new std::vector<SDEVICES>();
+		for (auto i = deviceArray.begin(); i != deviceArray.end(); ++i) {
+			auto& data = *i;
+			auto dataobj = data.as_object();
+
+			out->push_back(SDEVICES(
+				data.at(U("id")).as_string(),
+				data.
+			));
+
+
+			for (auto inner = dataobj.cbegin(); inner != dataobj.cend(); ++inner) {
+				inner->th
+			}
+		}
+
 
 		this->apiSync.unlock();
 		return NULL;
-	}
-
-	json::value parseJsonResponse()
-	{
-		utility::stringstream_t ss;
-		ss << this->responseBuffer->c_str();
-		json::value output = json::value::parse(ss);
-
-		std::cout << this->responseBuffer << std::endl;
-		return output;
 	}
 
 	void setCurlResponseBuffer()

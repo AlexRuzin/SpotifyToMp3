@@ -47,7 +47,7 @@ int main()
 		ExitProcess(1);
 	}
 
-	if (spot.setPrimaryDevice("")) {
+	if (spot.setPrimaryDevice(cfg->defaultDevice)) {
 		ExitProcess(1);
 	}
 
