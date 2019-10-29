@@ -14,11 +14,18 @@
 const char* defaultVirtualCableDevice = "CABLE Output";
 std::string configFilename = "..\\config.ini";
 
+typedef struct {
+	std::string clientId;
+	std::string clientSecret;
+	std::string refreshToken;
+	std::string defaultDevice;
+} INICFG, * PINICFG;
+
 // Prototypes
 void signal_handler(int signal);
 void exitPaError(PaError err);
-int processIni(std::string filename,
-	std::string* clientId, std::string* clientSecret, std::string* refreshToken);
+int processIni(std::string filename, PINICFG* cfg);
+
 
 int main()
 {
@@ -28,20 +35,21 @@ int main()
 	previousHandler = signal(SIGABRT, signal_handler);
 
 	static_assert(sizeof(int) == 4, "lame support requires 32 bit");
-
-	std::string clientId, clientSecret, refreshToken;
-	if (processIni(configFilename, &clientId, &clientSecret, &refreshToken)) {
+	PINICFG cfg = NULL;
+	if (processIni(configFilename, &cfg)) {
 		std::cout << "[!] Failed to parse config: " << configFilename << std::endl;
 		ExitProcess(1);
 	}
 
-	spotify spot{clientId, clientSecret, refreshToken};
+	spotify spot{cfg->clientId, cfg->clientSecret, cfg->refreshToken};
 	if (spot.authRefreshToken()) {
 		std::cout << "[!] Failed to obtain access token from refresh token" << std::endl;
 		ExitProcess(1);
 	}
 
-	const std::vector<std::string>* device = spot.getDeviceList();
+	if (spot.setPrimaryDevice("")) {
+		ExitProcess(1);
+	}
 
 	if (spot.cmdResumePlayback()) {
 		std::cout << "[!] Failed to resume playback" << std::endl;
@@ -74,8 +82,7 @@ int main()
 	return 0;
 }
 
-int processIni(std::string filename, 
-	std::string* clientId, std::string* clientSecret, std::string *refreshToken)
+int processIni(std::string filename, PINICFG *cfg)
 {
 	INIReader reader(filename);
 
@@ -84,10 +91,13 @@ int processIni(std::string filename,
 		return -1;
 	}
 
+	*cfg = new INICFG;
+
 	const std::string sec = "api";
-	*clientId = reader.Get(sec, "clientId", "ffff");
-	*clientSecret = reader.Get(sec, "clientSecret", "ffff");
-	*refreshToken = reader.Get(sec, "refreshToken", "ffff");
+	(*cfg)->clientId = reader.Get(sec, "clientId", "ffff");
+	(*cfg)->clientSecret = reader.Get(sec, "clientSecret", "ffff");
+	(*cfg)->refreshToken = reader.Get(sec, "refreshToken", "ffff");
+	(*cfg)->defaultDevice = reader.Get(sec, "defaultDevice", "ffff");
 
 	return 0;
 }

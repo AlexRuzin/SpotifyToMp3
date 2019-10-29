@@ -31,6 +31,17 @@ private:
 
 	std::string *responseBuffer;
 
+	typedef struct {
+		std::string id;
+		std::string name;
+		std::string type;
+		bool isActive;
+		bool isPrivateSession;
+		bool isRestricted;
+		unsigned int volumePercent;
+	} SDEVICES, *PSDEVICES;
+	std::vector<SDEVICES> *sDevices;
+
 public:
 	std::string clientId;
 	std::string clientSecret;
@@ -131,32 +142,15 @@ public:
 		return 0;
 	}
 
-	std::vector<std::string> *getDeviceList()
+	int setPrimaryDevice(std::string deviceName)
 	{
-		this->apiSync.lock();
-		assert(this->accessToken != NULL);
-		assert(this->curl == NULL);
-
-		this->curl = curl_easy_init();
-
-		setCurlResponseBuffer();
-		setCurlUri(curl, "https://api.spotify.com/v1/me/player/devices", "GET");
-
-		struct curl_slist* chunk = returnAuthHeader();
-		curl_easy_setopt(curl, CURLOPT_HTTPHEADER, chunk);
-
-		int rc = curl_easy_perform(curl);
-		if (rc != CURLE_OK) {
-			curlError(rc);
+		this->sDevices = getDeviceList();
+		if (sDevices->size() == 0) {
+			std::cout << "[!] Returned 0 physical devices" << std::endl;
+			return -1;
 		}
-		curl_easy_cleanup(curl);
-		this->curl = NULL;
 
-		json::value output = parseJsonResponse();
-		
-
-		this->apiSync.unlock();
-		return NULL;
+		return 0;
 	}
 
 	int cmdResumePlayback()
@@ -194,6 +188,34 @@ public:
 	}
 
 private:
+	std::vector<SDEVICES>* getDeviceList()
+	{
+		this->apiSync.lock();
+		assert(this->accessToken != NULL);
+		assert(this->curl == NULL);
+
+		this->curl = curl_easy_init();
+
+		setCurlResponseBuffer();
+		setCurlUri(curl, "https://api.spotify.com/v1/me/player/devices", "GET");
+
+		struct curl_slist* chunk = returnAuthHeader();
+		curl_easy_setopt(curl, CURLOPT_HTTPHEADER, chunk);
+
+		int rc = curl_easy_perform(curl);
+		if (rc != CURLE_OK) {
+			curlError(rc);
+		}
+		curl_easy_cleanup(curl);
+		this->curl = NULL;
+
+		json::value output = parseJsonResponse();
+
+
+		this->apiSync.unlock();
+		return NULL;
+	}
+
 	json::value parseJsonResponse()
 	{
 		utility::stringstream_t ss;
