@@ -19,6 +19,7 @@ typedef struct {
 	std::string clientSecret;
 	std::string refreshToken;
 	std::string defaultDevice;
+	std::string playlist;
 } INICFG, * PINICFG;
 
 // Prototypes
@@ -45,6 +46,11 @@ int main()
 	if (spot.authRefreshToken()) {
 		std::cout << "[!] Failed to obtain access token from refresh token" << std::endl;
 		ExitProcess(1);
+	}
+
+	if (spot.searchPlaylist(cfg->playlist, "Silhouettes")) {
+		std::cout << "[!] Failed to find playlist: " << cfg->playlist << std::endl;
+		ExitProcess(0);
 	}
 
 	if (spot.setPrimaryDevice(cfg->defaultDevice)) {
@@ -97,6 +103,7 @@ int processIni(std::string filename, PINICFG *cfg)
 	(*cfg)->clientSecret = reader.Get(sec, "clientSecret", "ffff");
 	(*cfg)->refreshToken = reader.Get(sec, "refreshToken", "ffff");
 	(*cfg)->defaultDevice = reader.Get(sec, "defaultDevice", "ffff");
+	(*cfg)->playlist = reader.Get(sec, "playlistSearch", "ffff");
 
 	return 0;
 }

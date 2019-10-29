@@ -39,11 +39,12 @@ private:
 		bool isRestricted;
 		unsigned int volumePercent;
 
-
 	} SDEVICES, *PSDEVICES;
 	std::vector<SDEVICES> *sDevices;
 	std::string primaryDevice;
 	std::string primaryDeviceId;
+
+	std::string targetPlaylistId;
 
 public:
 	std::string clientId;
@@ -78,6 +79,9 @@ public:
 
 	// Resume playback on default device
 	int cmdResumePlayback();
+
+	// Search for a playlist
+	int searchPlaylist(std::string playlist, std::string owner);
 
 	// Determine primary audio device from input default device
 	int setPrimaryDevice(std::string deviceName);

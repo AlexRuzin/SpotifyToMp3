@@ -1,4 +1,11 @@
+#include <cctype>
+#include <iomanip>
+#include <sstream>
+#include <string>
+
 #include "spotify.h"
+
+std::string url_encode(const std::string& value);
 
 int spotify::authRefreshToken()
 {
@@ -104,26 +111,6 @@ int spotify::cmdResumePlayback()
 	return 0;
 }
 
-int spotify::setPrimaryDevice(std::string deviceName)
-{
-	this->sDevices = getDeviceList();
-	if (sDevices->size() == 0) {
-		std::cout << "[!] Returned 0 physical devices" << std::endl;
-		return -1;
-	}
-
-	for (std::vector<SDEVICES>::iterator i = sDevices->begin(); i != sDevices->end(); ++i) {
-		if ((*i).name == deviceName) {
-			this->primaryDevice = deviceName;
-			this->primaryDeviceId = (*i).id;
-			return 0;
-		}
-	}
-
-	std::cout << "[!] Failed to find device: " << deviceName << std::endl;
-	return -1;
-}
-
 std::vector<spotify::SDEVICES>* spotify::getDeviceList()
 {
 	this->apiSync.lock();
@@ -166,4 +153,86 @@ std::vector<spotify::SDEVICES>* spotify::getDeviceList()
 
 	this->apiSync.unlock();
 	return out;
+}
+
+int spotify::searchPlaylist(std::string playlist, std::string owner)
+{
+	this->apiSync.lock();
+	assert(this->curl == NULL);
+
+	// curl -X GET "https://api.spotify.com/v1/search?q=bob&type=artist&offset=20&limit=2" -H "Authorization: Bearer {your access token}"
+	this->curl = curl_easy_init();
+
+	setCurlResponseBuffer();
+	setCurlUri(curl, "https://api.spotify.com/v1/search?q=" + url_encode(playlist) + "&type=playlist", "GET");
+	struct curl_slist* chunk = returnAuthHeader();
+	curl_easy_setopt(curl, CURLOPT_HTTPHEADER, chunk);
+
+	int rc = curl_easy_perform(curl);
+	if (rc != CURLE_OK) {
+		curlError(rc);
+	}
+	curl_easy_cleanup(curl);
+	this->curl = NULL;
+
+	rapidjson::Document jsonDoc;
+	jsonDoc.Parse(responseBuffer->c_str());
+	assert(jsonDoc.HasMember("playlists"));
+	const rapidjson::Value& itemArray = jsonDoc["playlists"]["items"];
+	assert(itemArray.IsArray());
+
+	// Iterate playlists
+	for (rapidjson::SizeType i = 0; i < itemArray.Size(); i++) {
+		if (itemArray[i]["name"].GetString() == playlist && 
+			itemArray[i]["owner"]["display_name"].GetString() == owner) {
+			this->targetPlaylistId = itemArray[i]["id"].GetString();
+			return 0;
+		}
+	}
+
+	this->apiSync.unlock();
+	return -1;
+}
+
+int spotify::setPrimaryDevice(std::string deviceName)
+{
+	this->sDevices = getDeviceList();
+	if (sDevices->size() == 0) {
+		std::cout << "[!] Returned 0 physical devices" << std::endl;
+		return -1;
+	}
+
+	for (std::vector<SDEVICES>::iterator i = sDevices->begin(); i != sDevices->end(); ++i) {
+		if ((*i).name == deviceName) {
+			this->primaryDevice = deviceName;
+			this->primaryDeviceId = (*i).id;
+			return 0;
+		}
+	}
+
+	std::cout << "[!] Failed to find device: " << deviceName << std::endl;
+	return -1;
+}
+
+std::string url_encode(const std::string& value) {
+	std::ostringstream escaped;
+	escaped.fill('0');
+	escaped << std::hex;
+
+	for (std::string::const_iterator i = value.begin(), n = value.end(); i != n; ++i) {
+		std::string::value_type c = (*i);
+
+		// Keep alphanumeric and other accepted characters intact
+		if (isalnum(c) || c == '-' || c == '_' || c == '.' || c == '~') {
+			escaped << c;
+			continue;
+		}
+
+		// Any other characters are percent-encoded
+		escaped << std::uppercase;
+		escaped << '%' << std::setw(2) << int((unsigned char)c);
+		escaped << std::nouppercase;
+	}
+
+	return escaped.str();
 }
