@@ -96,6 +96,11 @@ public:
 	// Resume playback on default device
 	int cmdResumePlayback();
 
+	// Start playback of a specific track
+	int cmdResumePlaybackTrack(std::string trackId);
+
+	int cmdPausePlayback();
+
 	// Search for a playlist
 	int searchPlaylist(std::string playlist, std::string owner);
 

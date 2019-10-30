@@ -84,6 +84,66 @@ int spotify::obtainAccessToken()
 	return 0;
 }
 
+int spotify::cmdPausePlayback()
+{
+	assert(this->primaryDeviceId != "");
+	this->apiSync.lock();
+	assert(this->curl == NULL);
+
+	this->curl = curl_easy_init();
+
+	setCurlResponseBuffer();
+	setCurlUri(curl, "https://api.spotify.com/v1/me/player/pause?device_id=" + this->primaryDeviceId, "PUT");
+
+	struct curl_slist* chunk = returnAuthHeader();
+	chunk = curl_slist_append(chunk, "Content-Length: 0");
+	curl_easy_setopt(curl, CURLOPT_HTTPHEADER, chunk);
+
+	int rc = curl_easy_perform(curl);
+	if (rc != CURLE_OK) {
+		curlError(rc);
+	}
+	curl_easy_cleanup(curl);
+	this->curl = NULL;
+
+	this->apiSync.unlock();
+	return 0;
+}
+
+int spotify::cmdResumePlaybackTrack(std::string trackId)
+{
+	assert(this->primaryDeviceId != "");
+	this->apiSync.lock();
+	assert(this->curl == NULL);
+
+	this->curl = curl_easy_init();
+
+	setCurlResponseBuffer();
+	setCurlUri(curl, "https://api.spotify.com/v1/me/player/play?device_id=" + this->primaryDeviceId, "PUT");
+
+	struct curl_slist* chunk = returnAuthHeader();
+	curl_easy_setopt(curl, CURLOPT_HTTPHEADER, chunk);
+
+	//{"uris": ["spotify:track:4iV5W9uYEdYUVa79Axb7Rh", "spotify:track:1301WleyT98MSxVHPZCA6M"] }
+	std::string postData = "{ \"uris\": [\"spotify:track:" + trackId + "\"] }";
+	curl_easy_setopt(curl, CURLOPT_POSTFIELDS, postData.c_str());
+
+	int rc = curl_easy_perform(curl);
+	if (rc != CURLE_OK) {
+		curlError(rc);
+	}
+	curl_easy_cleanup(curl);
+	this->curl = NULL;
+
+	if (this->responseBuffer == NULL || *this->responseBuffer != "") {
+		std::cout << "[!] Invalid response buffer for resume playback" << std::endl;
+		return -1;
+	}
+
+	this->apiSync.unlock();
+	return 0;
+}
+
 int spotify::cmdResumePlayback()
 {
 	assert(this->primaryDeviceId != "");
