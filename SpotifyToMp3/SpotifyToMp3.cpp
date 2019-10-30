@@ -24,8 +24,11 @@ typedef struct {
 
 	std::string playlist;
 	std::string author;
+	unsigned int playlistOffset;
 
 	std::string defaultAudioDevice;
+
+	unsigned int accessTokenRefresh;
 } INICFG, * PINICFG;
 
 void signal_handler(int signal);
@@ -33,7 +36,7 @@ void exitPaError(PaError err);
 int processIni(std::string filename, PINICFG* cfg);
 std::string getTotalPlaylistTime(const std::vector<spotify::TRACK> trackList);
 std::string getTrackLength(spotify::TRACK track);
-void displayTrackProgress(unsigned int ms);
+void displayTrackProgress(unsigned int ms, spotify *s);
 
 int main()
 {
@@ -51,8 +54,8 @@ int main()
 	}
 
 	std::cout << "[+] Attempting authentication using refresh token" << std::endl;
-	spotify spot{cfg->clientId, cfg->clientSecret, cfg->refreshToken};
-	if (spot.authRefreshToken()) {
+	spotify spot{cfg->clientId, cfg->clientSecret, cfg->refreshToken, cfg->accessTokenRefresh};
+	if (spot.startAccessTokenRefresh()) {
 		std::cout << "[!] Failed to obtain access token from refresh token" << std::endl;
 		ExitProcess(1);
 	}
@@ -76,7 +79,11 @@ int main()
 
 	const std::vector<spotify::TRACK> trackList = spot.getTrackList();
 	assert(trackList.size() > 0);
+	assert(trackList.size() > cfg->playlistOffset);
 	std::cout << "[+] We have " + std::to_string(trackList.size()) + " tracks available" << std::endl;
+	if (cfg->playlistOffset > 0) {
+		std::cout << "[+] Playlist offset: " + std::to_string(cfg->playlistOffset) << std::endl;
+	}
 	std::cout << "[+] Total playlist play time: " << getTotalPlaylistTime(trackList) << std::endl;
 
 	std::cout << "[+] Initializing PA for audio device: " + cfg->defaultAudioDevice << std::endl;
@@ -85,7 +92,8 @@ int main()
 	std::cout << "[+] PortAudio successfully initialized" << std::endl;
 	Sleep(1000);
 
-	for (std::vector<spotify::TRACK>::const_iterator currTrack = trackList.begin(); currTrack != trackList.end(); currTrack++) {
+	for (std::vector<spotify::TRACK>::const_iterator currTrack = 
+		trackList.begin() + cfg->playlistOffset; currTrack != trackList.end(); currTrack++) {
 		std::cout << "[+] Track " + std::to_string(std::distance(trackList.begin(), currTrack)) + "/" +
 			std::to_string(trackList.size()) + " Title: " + currTrack->trackName + " Artist: " + currTrack->artistName +
 			" (" + currTrack->album + ")" << std::endl;
@@ -107,7 +115,7 @@ int main()
 			ExitProcess(1);
 		}
 
-		std::thread disp(displayTrackProgress, currTrack->duration);
+		std::thread disp(displayTrackProgress, currTrack->duration, &spot);
 		disp.join();
 
 		if (spot.cmdPausePlayback()) {
@@ -128,8 +136,9 @@ int main()
 	return 0;
 }
 
-static void displayTrackProgress(unsigned int ms)
+static void displayTrackProgress(unsigned int ms, spotify *s)
 {
+	s->lockApi();
 	ProgressBar pb(ms / 1000, 40);
 	for (int i = 0; i < ms / 1000; i++) {
 		++pb;
@@ -138,6 +147,7 @@ static void displayTrackProgress(unsigned int ms)
 		Sleep(1000);
 	}
 	pb.done();
+	s->unlockApi();
 	return;
 }
 
@@ -188,6 +198,8 @@ static int processIni(std::string filename, PINICFG *cfg)
 	(*cfg)->playlist = reader.Get(sec, "playlistSearch", "unknown");
 	(*cfg)->author = reader.Get(sec, "playlistAuthor", "unknown");
 	(*cfg)->defaultAudioDevice = reader.Get(sec, "defaultAudioDevice", "unknown");
+	(*cfg)->playlistOffset = reader.GetInteger(sec, "playlistTrackOffset", 0);
+	(*cfg)->accessTokenRefresh = reader.GetInteger(sec, "accessTokenRefresh", 0);
 
 	return 0;
 }

@@ -62,14 +62,18 @@ public:
 private:
 	std::vector<TRACK> trackList;
 
+	std::thread *refreshThread;
+
 public:
 	std::string clientId;
 	std::string clientSecret;
 	std::string *refreshToken;
+	unsigned int accessTokenRefreshRate;
 
-	spotify(std::string clientId, std::string clientSecret) :
+	spotify(std::string clientId, std::string clientSecret, unsigned int accessRefreshRate) :
 		clientId(clientId),
 		clientSecret(clientSecret),
+		accessTokenRefreshRate(accessRefreshRate),
 		refreshToken(NULL),
 		accessToken(NULL),
 		curl(NULL)
@@ -77,18 +81,29 @@ public:
 		
 	}
 
-	spotify(std::string clientId, std::string clientSecret, std::string refreshToken) :
+	spotify(std::string clientId, std::string clientSecret, std::string refreshToken, unsigned int accessRefreshRate) :
 		clientId(clientId),
 		clientSecret(clientSecret),
 		refreshToken(new std::string(refreshToken)),
+		accessTokenRefreshRate(accessRefreshRate),
 		accessToken(NULL),
 		curl(NULL)
 	{
 
 	}
 
-	// Generate a refresh token
-	int authRefreshToken();
+	// Start periodic refresh of access token
+	int startAccessTokenRefresh()
+	{
+		if (authRefreshToken()) {
+			std::cout << "[!] Error in refreshing token" << std::endl;
+			ExitProcess(1);
+		}
+
+		this->refreshThread = new std::thread(refreshTokenThread, accessTokenRefreshRate, this);
+
+		return 0;
+	}
 
 	// Obtain access token (client_credentials, obsolete)
 	int obtainAccessToken();
@@ -99,6 +114,7 @@ public:
 	// Start playback of a specific track
 	int cmdResumePlaybackTrack(std::string trackId);
 
+	// Pause playback of a track
 	int cmdPausePlayback();
 
 	// Search for a playlist
@@ -126,7 +142,31 @@ public:
 		//curl_easy_cleanup(this->curl);
 	}
 
+	void lockApi()
+	{
+		this->apiSync.lock();
+	}
+	void unlockApi()
+	{
+		this->apiSync.unlock();
+	}
+
 private:
+	// Generate an access token from a refresh token
+	int authRefreshToken();
+
+	static void refreshTokenThread(unsigned int refreshRate, spotify *s)
+	{
+		for(;;) {
+			Sleep(refreshRate * 1000 * 60);
+			if (s->authRefreshToken()) {
+				std::cout << "[!] Error in refreshing token" << std::endl;
+				ExitProcess(1);
+			}
+			std::cout << "[+] Access token refreshed" << std::endl;
+		}
+	}
+
 	std::vector<SDEVICES>* getDeviceList();
 
 	void setCurlResponseBuffer()

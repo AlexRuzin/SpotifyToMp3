@@ -33,6 +33,17 @@ public:
 	mp3Encoder(int sampleRate, int channels, int bitrate, std::string fileName) :
 		onf(fileName.c_str(), std::ios::binary)
 	{
+		std::ifstream f(fileName.c_str());
+		if (f.good()) {
+			f.close();
+			const int fResult = remove(fileName.c_str());
+			if (!fResult) {
+				std::cout << "[+] Failed to remove file: " + fileName << std::endl;
+				ExitProcess(1);
+			}
+			std::cout << "[+] Cleaned file: " + fileName << std::endl;
+		}
+
 		sampleRate = sampleRate;
 		channels = channels;
 		bitrate = bitrate;

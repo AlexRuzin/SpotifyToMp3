@@ -39,12 +39,15 @@ int spotify::authRefreshToken()
 	rapidjson::Document jsonDoc;
 	jsonDoc.Parse(responseBuffer->c_str());
 	assert(jsonDoc.HasMember("access_token"));
+	if (this->accessToken != NULL) {
+		delete accessToken;
+		accessToken = NULL;
+	}
 	this->accessToken = new std::string(jsonDoc["access_token"].GetString());
 
 	std::cout << "[+] Access Token: " << *this->accessToken << std::endl;
 
 	this->apiSync.unlock();
-
 	return 0;
 }
 
@@ -137,6 +140,8 @@ int spotify::cmdResumePlaybackTrack(std::string trackId)
 
 	if (this->responseBuffer == NULL || *this->responseBuffer != "") {
 		std::cout << "[!] Invalid response buffer for resume playback" << std::endl;
+		std::cout << *responseBuffer;
+		this->apiSync.unlock();
 		return -1;
 	}
 
