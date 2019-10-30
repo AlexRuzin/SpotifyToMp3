@@ -82,6 +82,23 @@ public:
 		onf.write(&buf[0], n);
 	}
 
+	int writeId3(
+		std::string artistName,
+		std::string trackName,
+		std::string albumName,
+		unsigned int year
+	)
+	{
+		id3tag_init(lameFlags);
+		id3tag_set_title(lameFlags, trackName.c_str());
+		id3tag_set_artist(lameFlags, artistName.c_str());
+		id3tag_set_album(lameFlags, albumName.c_str());
+		id3tag_set_year(lameFlags, std::to_string(year).c_str());
+		id3tag_set_comment(lameFlags, "https://github.com/AlexRuzin/SpotifyToMp3");
+
+		return 0;
+	}
+
 	void flush()
 	{
 		int n = lame_encode_flush(lameFlags, (unsigned char*)&buf[0], buf.size());
@@ -172,12 +189,23 @@ public:
 		return 0;
 	}
 
+	int writeId3(
+		std::string artistName,
+		std::string trackName,
+		std::string albumName,
+		unsigned int year
+	)
+	{
+		return encoder->writeId3(artistName, trackName, albumName, year);
+	}
+
 	int closeStreamAndWrite(void)
 	{
 		debug("[+] Gracefully closing current stream");
 		Pa_CloseStream(this->pAStream);
 
-
+		encoder->flush();
+		delete encoder;
 
 		return 0;
 	}

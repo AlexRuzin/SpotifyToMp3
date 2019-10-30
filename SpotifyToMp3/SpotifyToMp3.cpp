@@ -12,6 +12,7 @@
 #include "recordToMp3.h"
 #include "streamReader.h"
 #include "spotify.h"
+#include "progressBar.h"
 
 std::string configFilename = "..\\config.ini";
 
@@ -114,15 +115,13 @@ int main()
 			ExitProcess(1);
 		}
 
-		currMp3.closeStreamAndWrite();
-	}
-	
+		if (currMp3.writeId3(currTrack->artistName, currTrack->trackName, currTrack->album, currTrack->year)) {
+			std::cout << "[!] Failed to write id3" << std::endl;
+			ExitProcess(1);
+		}
 
-	if (spot.cmdResumePlayback()) {
-		std::cout << "[!] Failed to resume playback" << std::endl;
-		ExitProcess(0);
-	}
-	
+		currMp3.closeStreamAndWrite();
+	}	
 
 	std::cout << "[+] All operations done, closing PA" << std::endl;
 	Pa_Terminate();
@@ -131,7 +130,15 @@ int main()
 
 static void displayTrackProgress(unsigned int ms)
 {
-	//
+	ProgressBar pb(ms / 1000, 40);
+	for (int i = 0; i < ms / 1000; i++) {
+		++pb;
+
+		pb.display();
+		Sleep(1000);
+	}
+	pb.done();
+	return;
 }
 
 static std::string getTrackLength(spotify::TRACK track)

@@ -164,6 +164,7 @@
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="base64.h" />
+    <ClInclude Include="progressBar.h" />
     <ClInclude Include="recordToMp3.h" />
     <ClInclude Include="spotify.h" />
     <ClInclude Include="streamReader.h" />
