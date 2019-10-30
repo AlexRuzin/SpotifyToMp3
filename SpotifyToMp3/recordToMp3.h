@@ -93,7 +93,7 @@ class recordToMp3 {
 public:
 	std::string filename;
 
-	char* deviceName;
+	std::string deviceName;
 	int targetDevice;
 	double streamRate;
 
@@ -121,9 +121,9 @@ public:
 		Pa_CloseStream(this->pAStream);
 	}
 
-	int selectPrimaryDevice(const char* deviceName)
+	int selectPrimaryDevice(std::string deviceName)
 	{
-		this->deviceName = const_cast<char*>(deviceName);
+		this->deviceName = deviceName;
 		const int deviceCount = Pa_GetDeviceCount();
 		for (int i = 0; i < deviceCount; i++) {
 			if (std::string(Pa_GetDeviceInfo(i)->name).find(deviceName) != std::string::npos) {
@@ -132,7 +132,7 @@ public:
 				this->targetDevice = i;
 				break;
 			}
-			std::cout << "[+] Skipping device" << Pa_GetDeviceInfo(i)->name << std::endl;
+			//std::cout << "[+] Skipping device" << Pa_GetDeviceInfo(i)->name << std::endl;
 		}
 
 		this->streamRate = this->device->defaultSampleRate;
