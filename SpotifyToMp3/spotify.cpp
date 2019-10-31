@@ -10,8 +10,6 @@ std::string url_encode(const std::string& value);
 
 int spotify::authRefreshToken()
 {
-	waitForInternet();
-
 	if (this->refreshToken == NULL) {
 		std::cout << "[!] refreshToken cannot be NULL with authRefreshToken()" << std::endl;
 		return -1;
@@ -55,8 +53,6 @@ int spotify::authRefreshToken()
 
 int spotify::obtainAccessToken()
 {
-	waitForInternet();
-
 	this->apiSync.lock();
 	assert(this->curl == NULL);
 
@@ -93,8 +89,6 @@ int spotify::obtainAccessToken()
 
 int spotify::cmdPausePlayback()
 {
-	waitForInternet();
-
 	assert(this->primaryDeviceId != "");
 	this->apiSync.lock();
 	assert(this->curl == NULL);
@@ -121,8 +115,6 @@ int spotify::cmdPausePlayback()
 
 int spotify::cmdResumePlaybackTrack(std::string trackId)
 {
-	waitForInternet();
-
 	assert(this->primaryDeviceId != "");
 	this->apiSync.lock();
 	assert(this->curl == NULL);
@@ -159,8 +151,6 @@ int spotify::cmdResumePlaybackTrack(std::string trackId)
 
 int spotify::cmdResumePlayback()
 {
-	waitForInternet();
-
 	assert(this->primaryDeviceId != "");
 	this->apiSync.lock();
 	assert(this->curl == NULL);
@@ -189,8 +179,6 @@ int spotify::cmdResumePlayback()
 
 std::vector<spotify::SDEVICES>* spotify::getDeviceList()
 {
-	waitForInternet();
-
 	this->apiSync.lock();
 	assert(this->accessToken != NULL);
 	assert(this->curl == NULL);
@@ -235,8 +223,6 @@ std::vector<spotify::SDEVICES>* spotify::getDeviceList()
 
 int spotify::searchPlaylist(std::string playlist, std::string owner)
 {
-	waitForInternet();
-
 	this->apiSync.lock();
 	assert(this->curl == NULL);
 
@@ -277,8 +263,6 @@ int spotify::searchPlaylist(std::string playlist, std::string owner)
 
 const std::vector<spotify::PLAYLIST> *spotify::returnAllPlaylists(std::string playlistQueryString)
 {
-	waitForInternet();
-
 	this->apiSync.lock();
 	assert(this->curl == NULL);
 
@@ -320,8 +304,6 @@ const std::vector<spotify::PLAYLIST> *spotify::returnAllPlaylists(std::string pl
 
 const spotify::PLAYLIST *spotify::getPlaylistDetails(std::string playlistId)
 {
-	waitForInternet();
-
 	this->apiSync.lock();
 	assert(this->curl == NULL);
 
@@ -365,8 +347,6 @@ const spotify::PLAYLIST *spotify::getPlaylistDetails(std::string playlistId)
 
 int spotify::enumTracksPlaylist(std::string playlistId, unsigned int numOfTracks)
 {
-	waitForInternet();
-
 	this->apiSync.lock();
 	assert(this->curl == NULL);
 
@@ -418,8 +398,6 @@ int spotify::enumTracksPlaylist(std::string playlistId, unsigned int numOfTracks
 
 int spotify::setPrimaryDevice(std::string deviceName)
 {
-	waitForInternet();
-
 	this->sDevices = getDeviceList();
 	if (sDevices->size() == 0) {
 		std::cout << "[!] Returned 0 physical devices" << std::endl;

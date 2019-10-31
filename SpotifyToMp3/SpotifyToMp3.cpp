@@ -106,6 +106,10 @@ int main()
 	std::cout << "[+] Enumerating tracks for playlist: " + playlistName << std::endl;
 	const std::string activeId = (cfg->mode != MODE::ID_ONLY) ? spot.getTargetPlaylistId() : playlistId;
 	const spotify::PLAYLIST* playlistDetail = spot.getPlaylistDetails(activeId);
+	if (cfg->mode == MODE::ID_ONLY) {
+		playlistName = playlistDetail->playlistName;
+		owner = playlistDetail->owner;
+	}
 	if (spot.enumTracksPlaylist(activeId, playlistDetail->numOfTracks)) {
 		std::cout << "[!] Failed to enum playlist" << std::endl;
 		ExitProcess(0);
