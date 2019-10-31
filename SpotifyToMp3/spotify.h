@@ -123,14 +123,17 @@ public:
 		std::string owner;
 		std::string id;
 		std::string URI;
+
+		unsigned int numOfTracks;
 	} PLAYLIST, *PPLAYLIST;
+	const PLAYLIST *getPlaylistDetails(std::string playlistId);
 	const std::vector<PLAYLIST> *returnAllPlaylists(std::string playlistQueryString);
 
 	// Search for a playlist
 	int searchPlaylist(std::string playlist, std::string owner);
 
 	// Enum tracks in a playlist
-	int enumTracksPlaylist(std::string playlistId);
+	int enumTracksPlaylist(std::string playlistId, unsigned int numOfTracks);
 
 	// Determine primary audio device from input default device
 	int setPrimaryDevice(std::string deviceName);

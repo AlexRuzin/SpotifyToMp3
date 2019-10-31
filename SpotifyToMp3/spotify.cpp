@@ -293,7 +293,8 @@ const std::vector<spotify::PLAYLIST> *spotify::returnAllPlaylists(std::string pl
 				itemArray[i]["name"].GetString(),
 				itemArray[i]["owner"]["display_name"].GetString(),
 				itemArray[i]["id"].GetString(),
-				itemArray[i]["href"].GetString()
+				itemArray[i]["href"].GetString(),
+				itemArray[i]["tracks"]["total"].GetUint()
 			});
 	}
 
@@ -301,7 +302,7 @@ const std::vector<spotify::PLAYLIST> *spotify::returnAllPlaylists(std::string pl
 	return const_cast<const std::vector<spotify::PLAYLIST>*>(o);
 }
 
-int spotify::enumTracksPlaylist(std::string playlistId)
+const spotify::PLAYLIST *spotify::getPlaylistDetails(std::string playlistId)
 {
 	this->apiSync.lock();
 	assert(this->curl == NULL);
@@ -310,7 +311,7 @@ int spotify::enumTracksPlaylist(std::string playlistId)
 
 	this->curl = curl_easy_init();
 	setCurlResponseBuffer();
-	setCurlUri(curl, "https://api.spotify.com/v1/playlists/" + playlistId + "/tracks", "GET");
+	setCurlUri(curl, "https://api.spotify.com/v1/playlists/" + playlistId, "GET");
 	struct curl_slist* chunk = returnAuthHeader();
 	curl_easy_setopt(curl, CURLOPT_HTTPHEADER, chunk);
 
@@ -323,28 +324,72 @@ int spotify::enumTracksPlaylist(std::string playlistId)
 
 	rapidjson::Document jsonDoc;
 	jsonDoc.Parse(responseBuffer->c_str());
-	assert(jsonDoc.HasMember("items"));
-	const rapidjson::Value& itemArray = jsonDoc["items"];
-	assert(itemArray.IsArray());
-	for (rapidjson::SizeType i = 0; i < itemArray.Size(); i++) {
-		const std::string dateAdded = std::string(itemArray[i]["added_at"].GetString());
-		std::regex reg("(\\d{4})-\\d{1,2}-\\d{1,2}.*");
-		std::smatch m;
-		std::regex_search(dateAdded, m, reg);
-		std::string* out = NULL;
-		for (auto x : m) out = new std::string(x);
+	assert(jsonDoc.HasMember("name"));
+	assert(jsonDoc.HasMember("owner"));
+	assert(jsonDoc.HasMember("id"));
+	assert(jsonDoc.HasMember("href"));
+	assert(jsonDoc.HasMember("tracks"));
 
-		const rapidjson::Value& track = itemArray[i]["track"];
-		this->trackList.push_back(TRACK{
-				track["id"].GetString(),
-				track["artists"][0]["name"].GetString(),
-				track["name"].GetString(),
-				track["duration_ms"].GetUint(),
-				track["album"]["name"].GetString(),
-				(unsigned int)std::stoi(*out),
-				track["track_number"].GetUint(),
-				"unknown"
-			});
+	const rapidjson::Value& tracksDetails = jsonDoc["tracks"];
+	assert(tracksDetails.HasMember("total"));
+
+	spotify::PLAYLIST* o = new spotify::PLAYLIST{
+		jsonDoc["name"].GetString(),
+		jsonDoc["owner"]["display_name"].GetString(),
+		jsonDoc["id"].GetString(),
+		jsonDoc["href"].GetString(),
+		tracksDetails["total"].GetUint()
+	};
+
+	this->apiSync.unlock();
+	return o;
+}
+
+int spotify::enumTracksPlaylist(std::string playlistId, unsigned int numOfTracks)
+{
+	this->apiSync.lock();
+	assert(this->curl == NULL);
+
+	while (this->trackList.size() != numOfTracks) {
+		this->curl = curl_easy_init();
+		setCurlResponseBuffer();
+		setCurlUri(curl, "https://api.spotify.com/v1/playlists/" + 
+			playlistId + "/tracks?offset=" + std::to_string(trackList.size()), "GET");
+		struct curl_slist* chunk = returnAuthHeader();
+		curl_easy_setopt(curl, CURLOPT_HTTPHEADER, chunk);
+
+		int rc = curl_easy_perform(curl);
+		if (rc != CURLE_OK) {
+			curlError(rc);
+		}
+		curl_easy_cleanup(curl);
+		this->curl = NULL;
+
+		rapidjson::Document jsonDoc;
+		jsonDoc.Parse(responseBuffer->c_str());
+		assert(jsonDoc.HasMember("items"));
+		const rapidjson::Value& itemArray = jsonDoc["items"];
+		assert(itemArray.IsArray());
+		for (rapidjson::SizeType i = 0; i < itemArray.Size(); i++) {
+			const std::string dateAdded = std::string(itemArray[i]["added_at"].GetString());
+			std::regex reg("(\\d{4})-\\d{1,2}-\\d{1,2}.*");
+			std::smatch m;
+			std::regex_search(dateAdded, m, reg);
+			std::string* out = NULL;
+			for (auto x : m) out = new std::string(x);
+
+			const rapidjson::Value& track = itemArray[i]["track"];
+			this->trackList.push_back(TRACK{
+					track["id"].GetString(),
+					track["artists"][0]["name"].GetString(),
+					track["name"].GetString(),
+					track["duration_ms"].GetUint(),
+					track["album"]["name"].GetString(),
+					(unsigned int)std::stoi(*out),
+					track["track_number"].GetUint(),
+					"unknown"
+				});
+		}		
 	}
 
 	this->apiSync.unlock();

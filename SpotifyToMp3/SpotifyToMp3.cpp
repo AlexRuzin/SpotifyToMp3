@@ -1,4 +1,4 @@
-// copied a lot from https://gist.github.com/eruffaldi/86755065f4c777f01f972abf51890a6e
+// https://gist.github.com/eruffaldi/86755065f4c777f01f972abf51890a6e
 
 #include <iostream>
 #include <Windows.h>
@@ -22,7 +22,10 @@ typedef enum {
 	STATIC,
 
 	// Interactively select a playlist
-	SEARCH
+	SEARCH,
+
+	// Specify a playlist ID
+	ID_ONLY
 } MODE;
 
 typedef struct {
@@ -74,6 +77,7 @@ int main()
 	}
 
 	std::string playlistName, owner;
+	std::string playlistId;
 	switch (cfg->mode) {
 	case (MODE::STATIC):
 		playlistName = cfg->playlist;
@@ -83,15 +87,26 @@ int main()
 	case (MODE::SEARCH):
 		searchConsole(&playlistName, &owner, &spot);
 		std::cout << "[+] Selecting: " << playlistName << " by " << owner << std::endl;
+		break;
+
+	case (MODE::ID_ONLY):
+		std::cout << "-> Enter playlist ID: ";
+		std::getline(std::cin, playlistId);
+
+		break;
 	}
 
-	if (spot.searchPlaylist(playlistName, owner)) {
-		std::cout << "[!] Failed to find playlist: " << playlistName << std::endl;
-		ExitProcess(0);
+	if (cfg->mode != MODE::ID_ONLY) {
+		if (spot.searchPlaylist(playlistName, owner)) {
+			std::cout << "[!] Failed to find playlist: " << playlistName << std::endl;
+			ExitProcess(0);
+		}
 	}
 
 	std::cout << "[+] Enumerating tracks for playlist: " + playlistName << std::endl;
-	if (spot.enumTracksPlaylist(spot.getTargetPlaylistId())) {
+	const std::string activeId = (cfg->mode != MODE::ID_ONLY) ? spot.getTargetPlaylistId() : playlistId;
+	const spotify::PLAYLIST* playlistDetail = spot.getPlaylistDetails(activeId);
+	if (spot.enumTracksPlaylist(activeId, playlistDetail->numOfTracks)) {
 		std::cout << "[!] Failed to enum playlist" << std::endl;
 		ExitProcess(0);
 	}
@@ -138,8 +153,8 @@ int main()
 
 		std::string filename = currTrack->artistName + " - " + currTrack->trackName;
 		removeForbiddenChar(&filename);
-		std::string fileName = ".\\" + playlistDir + "\\" + fileName + ".mp3";
-		recordToMp3 currMp3(fileName);
+		filename = ".\\" + playlistDir + "\\" + filename + ".mp3";
+		recordToMp3 currMp3(filename);
 		if (currMp3.selectPrimaryDevice(cfg->defaultAudioDevice)) {
 			std::cout << "[!] Failed to determine primary output device" << std::endl;
 			ExitProcess(1);
@@ -193,7 +208,11 @@ void searchConsole(std::string* playlistName, std::string* owner, spotify *s)
 		std::getline(std::cin, term);
 
 		Sleep(1000);
-		const std::vector<spotify::PLAYLIST>* playlists = s->returnAllPlaylists("drum n bass");
+		const std::vector<spotify::PLAYLIST>* playlists = s->returnAllPlaylists(term);
+		if (playlists->size() == 0) {
+			std::cout << "[!] No results" << std::endl;
+			continue;
+		}
 		std::cout << "[+] Results: " << std::endl;
 		for (std::vector<spotify::PLAYLIST>::const_iterator i = playlists->begin();
 			i != playlists->end(); i++) {
@@ -204,7 +223,7 @@ void searchConsole(std::string* playlistName, std::string* owner, spotify *s)
 
 		std::cout << "-> Select playlist number (\"Q\" to search again)" << std::endl;
 		std::getline(std::cin, term);
-		if (term == "Q") {
+		if (term == "Q" || term == "q") {
 			continue;
 		}
 
@@ -279,9 +298,10 @@ static int processIni(std::string filename, PINICFG *cfg)
 	const std::string m = reader.GetString(sec, "mode", "search");
 	if (m == "search") {
 		(*cfg)->mode = MODE::SEARCH;
-	}
-	else if (m == "static") {
+	} else if (m == "static") {
 		(*cfg)->mode = MODE::STATIC;
+	} else if (m == "id") {
+		(*cfg)->mode = MODE::ID_ONLY;
 	}
 	else {
 		std::cout << "[!] Unknown mode: " + m << std::endl;
