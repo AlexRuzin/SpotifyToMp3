@@ -125,8 +125,7 @@ int main()
 	if (cfg->playlistOffset > 0) {
 		std::cout << "[+] Playlist offset: " + std::to_string(cfg->playlistOffset) << std::endl;
 	}
-	std::cout << "[+] Total playlist play time: " << getTotalPlaylistTime(trackList) << std::endl;
-
+	
 	std::cout << "[+] Initializing PA for audio device: " + cfg->defaultAudioDevice << std::endl;
 	Sleep(1000);
 	Pa_Initialize();
@@ -143,6 +142,9 @@ int main()
 	for (std::vector<spotify::TRACK>::const_iterator i = trackList.begin(); i != trackList.end(); i++) {
 		std::cout << i->artistName << " - " << i->trackName << " (" << i->album << ") " << std::endl;
 	}
+
+	std::cout << "[+] Total playlist play time: " << getTotalPlaylistTime(trackList) << std::endl;
+	Sleep(2000);
 
 	for (std::vector<spotify::TRACK>::const_iterator currTrack =
 		trackList.begin() + cfg->playlistOffset; currTrack != trackList.end(); currTrack++) {
