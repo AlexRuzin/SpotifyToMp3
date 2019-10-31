@@ -56,10 +56,9 @@ public:
 		}
 
 		lame_set_in_samplerate(lameFlags, sampleRate);
+		lame_set_brate(lameFlags, bitrate);
 		lame_set_num_channels(lameFlags, channels);
-		lame_set_out_samplerate(lameFlags, 0);
-
-		lame_set_brate(lameFlags, lameEncoderQuality);
+		lame_set_out_samplerate(lameFlags, sampleRate);
 
 		lame_init_params(this->lameFlags);
 	}
@@ -164,6 +163,8 @@ public:
 		}
 
 		this->streamRate = this->device->defaultSampleRate;
+		std::cout << "[+] Default device sample rate: " + std::to_string(device->defaultSampleRate) << std::endl;
+		Sleep(3000);
 
 		return 0;
 	}
@@ -177,7 +178,7 @@ public:
 		streamParams->sampleFormat = paInt32 | paNonInterleaved;
 		streamParams->suggestedLatency = this->device->defaultLowInputLatency;
 
-		this->encoder = new mp3Encoder(this->streamRate, streamParams->channelCount, 128000, this->filename);
+		this->encoder = new mp3Encoder(this->streamRate, streamParams->channelCount, 320000, this->filename);
 
 		int err = Pa_OpenStream(&this->pAStream,
 			streamParams,

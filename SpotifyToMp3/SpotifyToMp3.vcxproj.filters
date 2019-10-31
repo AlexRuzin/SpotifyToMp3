@@ -32,9 +32,6 @@
     <ClInclude Include="streamReader.h">
       <Filter>Header Files</Filter>
     </ClInclude>
-    <ClInclude Include="recordToMp3.h">
-      <Filter>Source Files</Filter>
-    </ClInclude>
     <ClInclude Include="spotify.h">
       <Filter>Header Files</Filter>
     </ClInclude>
@@ -42,6 +39,9 @@
       <Filter>Header Files</Filter>
     </ClInclude>
     <ClInclude Include="progressBar.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="recordToMp3.h">
       <Filter>Header Files</Filter>
     </ClInclude>
   </ItemGroup>
