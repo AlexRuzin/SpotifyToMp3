@@ -6,6 +6,7 @@
 #include <signal.h> 
 #include <chrono>
 #include <thread>
+#include <boost/filesystem/operations.hpp>
 
 #include <INIReader.h>
 
@@ -48,6 +49,7 @@ std::string getTotalPlaylistTime(const std::vector<spotify::TRACK> trackList);
 std::string getTrackLength(spotify::TRACK track);
 void displayTrackProgress(unsigned int ms, spotify *s);
 void searchConsole(std::string* playlistName, std::string* owner, spotify* s);
+void removeForbiddenChar(std::string* s);
 
 int main()
 {
@@ -109,15 +111,23 @@ int main()
 		std::cout << "[+] Playlist offset: " + std::to_string(cfg->playlistOffset) << std::endl;
 	}
 	std::cout << "[+] Total playlist play time: " << getTotalPlaylistTime(trackList) << std::endl;
-	for (std::vector<spotify::TRACK>::const_iterator i = trackList.begin(); i != trackList.end(); i++) {
-		std::cout << i->artistName << " - " << i->trackName << " (" << i->album << ") ";
-	}
 
 	std::cout << "[+] Initializing PA for audio device: " + cfg->defaultAudioDevice << std::endl;
 	Sleep(1000);
 	Pa_Initialize();
 	std::cout << "[+] PortAudio successfully initialized" << std::endl;
 	Sleep(1000);
+
+	std::string playlistDir = playlistName + " - " + owner;
+	removeForbiddenChar(&playlistDir);
+	playlistDir = ".\\" + playlistDir;
+	boost::filesystem::remove_all(playlistDir);
+	std::cout << "[+] Creating directory: " << playlistDir;
+	boost::filesystem::create_directory(playlistDir);
+
+	for (std::vector<spotify::TRACK>::const_iterator i = trackList.begin(); i != trackList.end(); i++) {
+		std::cout << i->artistName << " - " << i->trackName << " (" << i->album << ") " << std::endl;
+	}
 
 	for (std::vector<spotify::TRACK>::const_iterator currTrack =
 		trackList.begin() + cfg->playlistOffset; currTrack != trackList.end(); currTrack++) {
@@ -126,7 +136,7 @@ int main()
 			" (" + currTrack->album + ")" << std::endl;
 		std::cout << "[+] Track Length: " << getTrackLength(*currTrack) << std::endl;
 
-		std::string fileName = currTrack->artistName + " - " + currTrack->trackName + ".mp3";
+		std::string fileName = ".\\" + playlistDir + "\\" + currTrack->artistName + " - " + currTrack->trackName + ".mp3";
 		recordToMp3 currMp3(fileName);
 		if (currMp3.selectPrimaryDevice(cfg->defaultAudioDevice)) {
 			std::cout << "[!] Failed to determine primary output device" << std::endl;
@@ -161,6 +171,16 @@ int main()
 	std::cout << "[+] All operations done, closing PA" << std::endl;
 	Pa_Terminate();
 	return 0;
+}
+
+void removeForbiddenChar(std::string* s)
+{
+	std::string illegalChars = "\\/:?\"<>|";
+
+	for (char c : illegalChars) {
+		s->erase(std::remove(s->begin(), s->end(), c), s->end());
+	}
+	s = new std::string(illegalChars);
 }
 
 void searchConsole(std::string* playlistName, std::string* owner, spotify *s)
