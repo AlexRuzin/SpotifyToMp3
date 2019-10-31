@@ -16,7 +16,17 @@
 
 std::string configFilename = "..\\config.ini";
 
+typedef enum {
+	// Use ini to configure a static playlist
+	STATIC,
+
+	// Interactively select a playlist
+	SEARCH
+} MODE;
+
 typedef struct {
+	MODE mode;
+
 	std::string clientId;
 	std::string clientSecret;
 	std::string refreshToken;
@@ -37,6 +47,7 @@ int processIni(std::string filename, PINICFG* cfg);
 std::string getTotalPlaylistTime(const std::vector<spotify::TRACK> trackList);
 std::string getTrackLength(spotify::TRACK track);
 void displayTrackProgress(unsigned int ms, spotify *s);
+void searchConsole(std::string* playlistName, std::string* owner, spotify* s);
 
 int main()
 {
@@ -60,24 +71,37 @@ int main()
 		ExitProcess(1);
 	}
 
-	std::cout << "[+] Searching playlist: " + cfg->playlist + ", by author: " + cfg->author << std::endl;
-	if (spot.searchPlaylist(cfg->playlist, cfg->author)) {
-		std::cout << "[!] Failed to find playlist: " << cfg->playlist << std::endl;
+	std::string playlistName, owner;
+	switch (cfg->mode) {
+	case (MODE::STATIC):
+		playlistName = cfg->playlist;
+		owner = cfg->author;
+
+		break;
+	case (MODE::SEARCH):
+		searchConsole(&playlistName, &owner, &spot);
+		std::cout << "[+] Selecting: " << playlistName << " by " << owner << std::endl;
+	}
+
+	if (spot.searchPlaylist(playlistName, owner)) {
+		std::cout << "[!] Failed to find playlist: " << playlistName << std::endl;
 		ExitProcess(0);
 	}
 
-	std::cout << "[+] Enumerating tracks for playlist: " + cfg->playlist << std::endl;
+	std::cout << "[+] Enumerating tracks for playlist: " + playlistName << std::endl;
 	if (spot.enumTracksPlaylist(spot.getTargetPlaylistId())) {
 		std::cout << "[!] Failed to enum playlist" << std::endl;
 		ExitProcess(0);
 	}
+
+	std::cout << "[+] Getting tracks for playlist: " + playlistName  + ", by author: " + owner << std::endl;
+	const std::vector<spotify::TRACK> &trackList = spot.getTrackList();
 
 	std::cout << "[+] Querying default device: " + cfg->defaultSpotifyDevice << std::endl;
 	if (spot.setPrimaryDevice(cfg->defaultSpotifyDevice)) {
 		ExitProcess(1);
 	}
 
-	const std::vector<spotify::TRACK> trackList = spot.getTrackList();
 	assert(trackList.size() > 0);
 	assert(trackList.size() > cfg->playlistOffset);
 	std::cout << "[+] We have " + std::to_string(trackList.size()) + " tracks available" << std::endl;
@@ -85,6 +109,9 @@ int main()
 		std::cout << "[+] Playlist offset: " + std::to_string(cfg->playlistOffset) << std::endl;
 	}
 	std::cout << "[+] Total playlist play time: " << getTotalPlaylistTime(trackList) << std::endl;
+	for (std::vector<spotify::TRACK>::const_iterator i = trackList.begin(); i != trackList.end(); i++) {
+		std::cout << i->artistName << " - " << i->trackName << " (" << i->album << ") ";
+	}
 
 	std::cout << "[+] Initializing PA for audio device: " + cfg->defaultAudioDevice << std::endl;
 	Sleep(1000);
@@ -92,7 +119,7 @@ int main()
 	std::cout << "[+] PortAudio successfully initialized" << std::endl;
 	Sleep(1000);
 
-	for (std::vector<spotify::TRACK>::const_iterator currTrack = 
+	for (std::vector<spotify::TRACK>::const_iterator currTrack =
 		trackList.begin() + cfg->playlistOffset; currTrack != trackList.end(); currTrack++) {
 		std::cout << "[+] Track " + std::to_string(std::distance(trackList.begin(), currTrack)) + "/" +
 			std::to_string(trackList.size()) + " Title: " + currTrack->trackName + " Artist: " + currTrack->artistName +
@@ -134,6 +161,41 @@ int main()
 	std::cout << "[+] All operations done, closing PA" << std::endl;
 	Pa_Terminate();
 	return 0;
+}
+
+void searchConsole(std::string* playlistName, std::string* owner, spotify *s)
+{
+	for (;;) {
+		std::cout << "-> Enter playlist search term: ";		
+		std::string term;
+		std::getline(std::cin, term);
+
+		Sleep(1000);
+		const std::vector<spotify::PLAYLIST>* playlists = s->returnAllPlaylists("drum n bass");
+		std::cout << "[+] Results: " << std::endl;
+		for (std::vector<spotify::PLAYLIST>::const_iterator i = playlists->begin();
+			i != playlists->end(); i++) {
+
+			std::cout << "[" << std::to_string(std::distance(playlists->begin(), i) + 1) << "] " <<
+				i->playlistName << " by " << i->owner << std::endl;
+		}
+
+		std::cout << "-> Select playlist number (\"Q\" to search again)" << std::endl;
+		std::getline(std::cin, term);
+		if (term == "Q") {
+			continue;
+		}
+
+		const unsigned int userIndex = atoi(term.c_str());
+		if (userIndex > playlists->size()) {
+			std::cout << "[!] Invalid value" << std::endl;
+			continue;
+		}
+		
+		*playlistName = playlists->at(userIndex - 1).playlistName;
+		*owner = playlists->at(userIndex - 1).owner;
+		return;
+	}
 }
 
 static void displayTrackProgress(unsigned int ms, spotify *s)
@@ -191,6 +253,19 @@ static int processIni(std::string filename, PINICFG *cfg)
 	*cfg = new INICFG;
 
 	const std::string sec = "api";
+
+	const std::string m = reader.GetString(sec, "mode", "search");
+	if (m == "search") {
+		(*cfg)->mode = MODE::SEARCH;
+	}
+	else if (m == "static") {
+		(*cfg)->mode = MODE::STATIC;
+	}
+	else {
+		std::cout << "[!] Unknown mode: " + m << std::endl;
+		return -1;
+	}
+
 	(*cfg)->clientId = reader.Get(sec, "clientId", "unknown");
 	(*cfg)->clientSecret = reader.Get(sec, "clientSecret", "unknown");
 	(*cfg)->refreshToken = reader.Get(sec, "refreshToken", "unknown");

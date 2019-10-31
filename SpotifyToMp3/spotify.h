@@ -117,6 +117,15 @@ public:
 	// Pause playback of a track
 	int cmdPausePlayback();
 
+	// Take string input, and return a list of playlists
+	typedef struct {
+		std::string playlistName;
+		std::string owner;
+		std::string id;
+		std::string URI;
+	} PLAYLIST, *PPLAYLIST;
+	const std::vector<PLAYLIST> *returnAllPlaylists(std::string playlistQueryString);
+
 	// Search for a playlist
 	int searchPlaylist(std::string playlist, std::string owner);
 
@@ -132,7 +141,7 @@ public:
 	}
 
 	// Get target playlist Id
-	std::string getTargetPlaylistId()
+	const std::string getTargetPlaylistId()
 	{
 		return this->targetPlaylistId;
 	}

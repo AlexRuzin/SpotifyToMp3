@@ -261,6 +261,46 @@ int spotify::searchPlaylist(std::string playlist, std::string owner)
 	return -1;
 }
 
+const std::vector<spotify::PLAYLIST> *spotify::returnAllPlaylists(std::string playlistQueryString)
+{
+	this->apiSync.lock();
+	assert(this->curl == NULL);
+
+	// curl -X GET "https://api.spotify.com/v1/search?q=bob&type=artist&offset=20&limit=2" -H "Authorization: Bearer {your access token}"
+	this->curl = curl_easy_init();
+
+	setCurlResponseBuffer();
+	setCurlUri(curl, "https://api.spotify.com/v1/search?q=" + url_encode(playlistQueryString) + "&type=playlist", "GET");
+	struct curl_slist* chunk = returnAuthHeader();
+	curl_easy_setopt(curl, CURLOPT_HTTPHEADER, chunk);
+
+	int rc = curl_easy_perform(curl);
+	if (rc != CURLE_OK) {
+		curlError(rc);
+	}
+	curl_easy_cleanup(curl);
+	this->curl = NULL;
+
+	rapidjson::Document jsonDoc;
+	jsonDoc.Parse(responseBuffer->c_str());
+	assert(jsonDoc.HasMember("playlists"));
+	const rapidjson::Value& itemArray = jsonDoc["playlists"]["items"];
+	assert(itemArray.IsArray());
+
+	std::vector<spotify::PLAYLIST>* o = new std::vector<spotify::PLAYLIST>();
+	for (rapidjson::SizeType i = 0; i < itemArray.Size(); i++) {
+		o->push_back(spotify::PLAYLIST{
+				itemArray[i]["name"].GetString(),
+				itemArray[i]["owner"]["display_name"].GetString(),
+				itemArray[i]["id"].GetString(),
+				itemArray[i]["href"].GetString()
+			});
+	}
+
+	this->apiSync.unlock();
+	return const_cast<const std::vector<spotify::PLAYLIST>*>(o);
+}
+
 int spotify::enumTracksPlaylist(std::string playlistId)
 {
 	this->apiSync.lock();
