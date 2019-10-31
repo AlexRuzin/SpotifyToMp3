@@ -120,7 +120,7 @@ int main()
 
 	std::string playlistDir = playlistName + " - " + owner;
 	removeForbiddenChar(&playlistDir);
-	playlistDir = ".\\" + playlistDir;
+	playlistDir = playlistDir;
 	boost::filesystem::remove_all(playlistDir);
 	std::cout << "[+] Creating directory: " << playlistDir;
 	boost::filesystem::create_directory(playlistDir);
@@ -136,7 +136,9 @@ int main()
 			" (" + currTrack->album + ")" << std::endl;
 		std::cout << "[+] Track Length: " << getTrackLength(*currTrack) << std::endl;
 
-		std::string fileName = ".\\" + playlistDir + "\\" + currTrack->artistName + " - " + currTrack->trackName + ".mp3";
+		std::string filename = currTrack->artistName + " - " + currTrack->trackName;
+		removeForbiddenChar(&filename);
+		std::string fileName = ".\\" + playlistDir + "\\" + fileName + ".mp3";
 		recordToMp3 currMp3(fileName);
 		if (currMp3.selectPrimaryDevice(cfg->defaultAudioDevice)) {
 			std::cout << "[!] Failed to determine primary output device" << std::endl;
