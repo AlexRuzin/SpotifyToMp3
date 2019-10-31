@@ -11,6 +11,8 @@
 #include <rapidjson/rapidjson.h>
 #include <rapidjson/document.h>
 
+#include <WinInet.h>
+
 #include <curl/curl.h>
 #include "base64.h"
 
@@ -205,6 +207,12 @@ private:
 		std::string authBearer = "Authorization: Bearer " + *this->accessToken + "";
 		struct curl_slist* chunk = NULL;
 		return curl_slist_append(chunk, authBearer.c_str());
+	}
+
+	static void waitForInternet() {
+		while (!InternetCheckConnectionA("http://www.google.com", FLAG_ICC_FORCE_CONNECTION, 0)) {
+			Sleep(10000);
+		}
 	}
 };
 
