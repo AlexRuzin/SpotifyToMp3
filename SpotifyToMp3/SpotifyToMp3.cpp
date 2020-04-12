@@ -54,8 +54,30 @@ void displayTrackProgress(unsigned int ms, spotify *s);
 void searchConsole(std::string* playlistName, std::string* owner, spotify* s);
 void removeForbiddenChar(std::string* s);
 
-int main()
+typedef enum {
+	RUN_MODE_PLAYLIST,
+	RUN_MODE_ARTIST,
+	RUN_MODE_SONG,
+
+} RUN_MODE;
+
+int main(int argc, char** argv)
 {
+	int run_mode = RUN_MODE_PLAYLIST;
+	if (argc != 0) {
+		for (int i = 0; i < argc; i++) {
+			if (argv[i] == "--playlist") {
+				run_mode = RUN_MODE_PLAYLIST;
+			}
+			else if (argv[i] == "--song") {
+				run_mode = RUN_MODE_SONG;
+			}
+			else {
+				run_mode = RUN_MODE_PLAYLIST;
+			}
+		}	
+	}
+
 	// Catch SIGINT
 	typedef void (*SignalHandlerPointer)(int);
 	SignalHandlerPointer previousHandler;
@@ -149,6 +171,11 @@ int main()
 
 	std::cout << "[+] Total playlist play time: " << getTotalPlaylistTime(trackList) << std::endl;
 	Sleep(2000);
+
+	if (cfg->playlistOffset > trackList.size()) {
+		std::cout << "[!] Playlist offset cannot be greater than track count" << std::endl;
+		ExitProcess(1);
+	}
 
 	for (std::vector<spotify::TRACK>::const_iterator currTrack =
 		trackList.begin() + cfg->playlistOffset; currTrack != trackList.end(); currTrack++) {

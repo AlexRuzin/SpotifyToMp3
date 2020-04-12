@@ -178,7 +178,7 @@ public:
 		streamParams->sampleFormat = paInt32 | paNonInterleaved;
 		streamParams->suggestedLatency = this->device->defaultLowInputLatency;
 
-		this->encoder = new mp3Encoder(this->streamRate, streamParams->channelCount, 320000, this->filename);
+		this->encoder = new mp3Encoder(48000, streamParams->channelCount, 320000, this->filename);
 
 		int err = Pa_OpenStream(&this->pAStream,
 			streamParams,
