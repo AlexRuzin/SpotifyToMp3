@@ -1,0 +1,12 @@
+{
+  "name": "spotifytomp3",
+  "version": "0.1.1",
+	
+  "dependencies": [ 
+	"inih",
+	"portaudio",
+	"mp3lame",
+	"rapidjson",
+	"curl"
+  ]
+}

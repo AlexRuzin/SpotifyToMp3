@@ -27,6 +27,9 @@
     <ClCompile Include="base64.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
+    <ClCompile Include="shared.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="streamReader.h">
@@ -42,6 +45,9 @@
       <Filter>Header Files</Filter>
     </ClInclude>
     <ClInclude Include="recordToMp3.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="shared.h">
       <Filter>Header Files</Filter>
     </ClInclude>
   </ItemGroup>

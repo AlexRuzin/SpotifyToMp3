@@ -6,10 +6,10 @@
 #include <signal.h> 
 #include <chrono>
 #include <thread>
-#include <boost/filesystem/operations.hpp>
 
 #include <INIReader.h>
 
+#include "shared.h"
 #include "recordToMp3.h"
 #include "streamReader.h"
 #include "spotify.h"
@@ -158,12 +158,10 @@ int main(int argc, char** argv)
 	std::cout << "[+] PortAudio successfully initialized" << std::endl;
 	Sleep(1000);
 
-	std::string playlistDir = playlistName + " - " + owner;
-	removeForbiddenChar(&playlistDir);
-	playlistDir = playlistDir;
-	boost::filesystem::remove_all(playlistDir);
+	const std::string playlistDir = playlistName + " - " + owner;
+	shared::RemoveDirectoryRecursive(playlistDir);
 	std::cout << "[+] Creating directory: " << playlistDir;
-	boost::filesystem::create_directory(playlistDir);
+	shared::CreateDirectory(playlistDir)
 
 	for (std::vector<spotify::TRACK>::const_iterator i = trackList.begin(); i != trackList.end(); i++) {
 		std::cout << i->artistName << " - " << i->trackName << " (" << i->album << ") " << std::endl;
