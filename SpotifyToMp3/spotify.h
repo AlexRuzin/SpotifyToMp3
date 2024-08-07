@@ -18,7 +18,6 @@
 
 static size_t WriteCallback(void* contents, size_t size, size_t nmemb, void* userp);
 static void curlError(int errorCode);
-static std::string ws2s(const std::wstring& wstr);
 
 class spotify
 {
@@ -209,14 +208,6 @@ private:
 		return curl_slist_append(chunk, authBearer.c_str());
 	}
 };
-
-static std::string ws2s(const std::wstring& wstr)
-{
-	using convert_typeX = std::codecvt_utf8<wchar_t>;
-	std::wstring_convert<convert_typeX, wchar_t> converterX;
-
-	return converterX.to_bytes(wstr);
-}
 
 static void curlError(int errorCode)
 {

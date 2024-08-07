@@ -161,7 +161,7 @@ int main(int argc, char** argv)
 	const std::string playlistDir = playlistName + " - " + owner;
 	shared::RemoveDirectoryRecursive(playlistDir);
 	std::cout << "[+] Creating directory: " << playlistDir;
-	shared::CreateDirectory(playlistDir)
+	shared::CreateDirectory2(playlistDir);
 
 	for (std::vector<spotify::TRACK>::const_iterator i = trackList.begin(); i != trackList.end(); i++) {
 		std::cout << i->artistName << " - " << i->trackName << " (" << i->album << ") " << std::endl;

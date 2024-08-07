@@ -4,6 +4,7 @@
 #include <filesystem>
 #include <string>
 
+
 namespace shared 
 {
 
@@ -11,6 +12,9 @@ namespace shared
 bool RemoveDirectoryRecursive(const std::string &dir);
 
 // Create directory
-bool CreateDirectory(const std::string &dir);
+bool CreateDirectory2(const std::string &dir);
+
+// wide 2 string 
+std::string ws2s(const std::wstring& wstr);
 
 }
