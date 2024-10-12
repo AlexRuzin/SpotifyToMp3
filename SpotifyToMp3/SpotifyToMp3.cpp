@@ -15,7 +15,7 @@
 #include "spotify.h"
 #include "progressBar.h"
 
-std::string configFilename = "..\\config.ini";
+std::string configFilename = "..\\..\\config.ini";
 
 typedef enum {
 	// Use ini to configure a static playlist
@@ -221,7 +221,7 @@ int main(int argc, char** argv)
 	return 0;
 }
 
-void removeForbiddenChar(std::string* s)
+static void removeForbiddenChar(std::string* s)
 {
 	std::string illegalChars = "\\/:?\"<>|";
 
@@ -231,7 +231,7 @@ void removeForbiddenChar(std::string* s)
 	s = new std::string(illegalChars);
 }
 
-void searchConsole(std::string* playlistName, std::string* owner, spotify *s)
+static void searchConsole(std::string* playlistName, std::string* owner, spotify *s)
 {
 	for (;;) {
 		std::cout << "-> Enter playlist search term: ";		
