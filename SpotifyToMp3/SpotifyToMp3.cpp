@@ -1,5 +1,7 @@
 // https://gist.github.com/eruffaldi/86755065f4c777f01f972abf51890a6e
 
+//#pragma comment(lib, "ws2_32.dll")
+
 #include <iostream>
 #include <Windows.h>
 #include <string>
